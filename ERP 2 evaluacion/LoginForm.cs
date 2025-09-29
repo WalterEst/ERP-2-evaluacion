@@ -30,8 +30,8 @@ public class LoginForm : Form
         MaximizeBox = true;
         MinimizeBox = true;
         AcceptButton = _btnIngresar;
-        Width = 480;
-        Height = 360;
+        Size = new Size(720, 540);
+        MinimumSize = new Size(560, 480);
 
         UiTheme.ApplyMinimalStyle(this);
 
@@ -65,9 +65,9 @@ public class LoginForm : Form
 
         layout.Controls.Add(_lblTitulo, 0, 0);
         layout.Controls.Add(_lblSubtitulo, 0, 1);
-        layout.Controls.Add(new Label { Text = "Usuario o correo", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 12, 0, 4) }, 0, 2);
+        layout.Controls.Add(new Label { Text = "Usuario o correo", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 16, 0, 6) }, 0, 2);
         layout.Controls.Add(_txtUsuario, 0, 3);
-        layout.Controls.Add(new Label { Text = "Contraseña", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 4, 0, 4) }, 0, 4);
+        layout.Controls.Add(new Label { Text = "Contraseña", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 6, 0, 6) }, 0, 4);
         layout.Controls.Add(_txtClave, 0, 5);
         layout.Controls.Add(_lblMensaje, 0, 6);
 
@@ -76,7 +76,9 @@ public class LoginForm : Form
             FlowDirection = FlowDirection.RightToLeft,
             Dock = DockStyle.Fill,
             AutoSize = true,
-            Margin = new Padding(0, 16, 0, 0)
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0, 24, 0, 0),
+            WrapContents = false
         };
         panelBotones.Controls.Add(_btnIngresar);
         panelBotones.Controls.Add(_btnRegistrarse);
@@ -87,6 +89,9 @@ public class LoginForm : Form
         card.AutoSize = true;
         card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         card.Anchor = AnchorStyles.None;
+        card.Padding = new Padding(40, 40, 40, 32);
+        card.MaximumSize = new Size(560, 0);
+        card.MinimumSize = new Size(520, 0);
         card.Controls.Add(layout);
 
         var root = new TableLayoutPanel

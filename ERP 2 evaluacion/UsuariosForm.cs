@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using System;
 using System.Data;
 using System.Drawing;
 using System.Text.RegularExpressions;
@@ -24,8 +25,9 @@ public class UsuariosForm : Form
     public UsuariosForm()
     {
         Text = "Usuarios";
-        Width = 900;
-        Height = 600;
+        StartPosition = FormStartPosition.CenterParent;
+        Size = new Size(1280, 840);
+        MinimumSize = new Size(1120, 720);
 
         UiTheme.ApplyMinimalStyle(this);
 
@@ -49,20 +51,38 @@ public class UsuariosForm : Form
         {
             Dock = DockStyle.Fill,
             Orientation = Orientation.Horizontal,
-            SplitterDistance = 320,
             BorderStyle = BorderStyle.None,
-            SplitterWidth = 8
+            SplitterWidth = 12,
+            Panel1MinSize = 320,
+            Panel2MinSize = 260
         };
 
         contenedor.Panel1.BackColor = Color.Transparent;
         contenedor.Panel2.BackColor = Color.Transparent;
 
         var gridCard = UiTheme.CreateCardPanel();
+        gridCard.Padding = new Padding(32, 32, 32, 24);
+        gridCard.Margin = new Padding(0, 0, 0, 24);
         gridCard.Controls.Add(_grid);
         contenedor.Panel1.Controls.Add(gridCard);
         contenedor.Panel2.Controls.Add(panelEdicion);
 
         Controls.Add(contenedor);
+
+        void AjustarDistribucion(object? _, EventArgs __)
+        {
+            var distancia = (int)(contenedor.Height * 0.55);
+            var minimoPanel1 = contenedor.Panel1MinSize;
+            var minimoPanel2 = contenedor.Panel2MinSize;
+            distancia = Math.Max(minimoPanel1, Math.Min(distancia, contenedor.Height - minimoPanel2));
+            if (distancia > 0 && distancia < contenedor.Height)
+            {
+                contenedor.SplitterDistance = distancia;
+            }
+        }
+
+        Shown += AjustarDistribucion;
+        contenedor.Resize += AjustarDistribucion;
 
         Load += (_, _) => CargarUsuarios();
         _grid.SelectionChanged += Grid_SelectionChanged;
@@ -89,7 +109,7 @@ public class UsuariosForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 4,
             RowCount = 5,
-            Padding = new Padding(0)
+            Padding = new Padding(0, 0, 0, 16)
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
@@ -101,15 +121,15 @@ public class UsuariosForm : Form
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        layout.Controls.Add(new Label { Text = "Usuario", AutoSize = true, ForeColor = UiTheme.MutedTextColor }, 0, 0);
+        layout.Controls.Add(new Label { Text = "Usuario", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 0, 0, 6) }, 0, 0);
         layout.Controls.Add(_txtNombreUsuario, 0, 1);
         layout.SetColumnSpan(_txtNombreUsuario, 2);
 
-        layout.Controls.Add(new Label { Text = "Correo", AutoSize = true, ForeColor = UiTheme.MutedTextColor }, 2, 0);
+        layout.Controls.Add(new Label { Text = "Correo", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(16, 0, 0, 6) }, 2, 0);
         layout.Controls.Add(_txtCorreo, 2, 1);
         layout.SetColumnSpan(_txtCorreo, 2);
 
-        layout.Controls.Add(new Label { Text = "Nombre completo", AutoSize = true, ForeColor = UiTheme.MutedTextColor }, 0, 2);
+        layout.Controls.Add(new Label { Text = "Nombre completo", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 12, 0, 6) }, 0, 2);
         layout.Controls.Add(_txtNombreCompleto, 0, 3);
         layout.SetColumnSpan(_txtNombreCompleto, 4);
 
@@ -122,11 +142,15 @@ public class UsuariosForm : Form
             Dock = DockStyle.Bottom,
             FlowDirection = FlowDirection.RightToLeft,
             AutoSize = true,
-            Padding = new Padding(0, 16, 0, 0)
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(0, 24, 0, 0),
+            WrapContents = false
         };
         panelBotones.Controls.AddRange(new Control[] { _btnGuardar, _btnNuevo, _btnEliminar, _btnReiniciar });
 
         var panel = UiTheme.CreateCardPanel();
+        panel.AutoScroll = true;
+        panel.Padding = new Padding(32, 32, 32, 24);
         panel.Controls.Add(layout);
         panel.Controls.Add(panelBotones);
 
