@@ -6,29 +6,30 @@ namespace ERP_2_evaluacion;
 
 public static class UiTheme
 {
-    public static readonly Color BackgroundColor = Color.FromArgb(245, 247, 250);
+    public static readonly Color BackgroundColor = Color.FromArgb(243, 246, 250);
     public static readonly Color SurfaceColor = Color.White;
-    public static readonly Color AccentColor = Color.FromArgb(56, 97, 251);
-    public static readonly Color AccentColorHover = Color.FromArgb(46, 84, 230);
-    public static readonly Color TextColor = Color.FromArgb(31, 41, 55);
-    public static readonly Color MutedTextColor = Color.FromArgb(110, 118, 135);
-    public static readonly Color BorderColor = Color.FromArgb(224, 227, 231);
-    public static readonly Color SecondaryButtonColor = Color.FromArgb(240, 242, 247);
-    public static readonly Color SecondaryButtonHoverColor = Color.FromArgb(224, 227, 235);
-    public static readonly Color DangerColor = Color.FromArgb(220, 76, 70);
-    public static readonly Color DangerColorHover = Color.FromArgb(185, 60, 55);
+    public static readonly Color AccentColor = Color.FromArgb(46, 100, 255);
+    public static readonly Color AccentColorHover = Color.FromArgb(32, 82, 233);
+    public static readonly Color TextColor = Color.FromArgb(28, 37, 54);
+    public static readonly Color MutedTextColor = Color.FromArgb(113, 120, 137);
+    public static readonly Color BorderColor = Color.FromArgb(220, 224, 230);
+    public static readonly Color SecondaryButtonColor = Color.FromArgb(234, 238, 246);
+    public static readonly Color SecondaryButtonHoverColor = Color.FromArgb(218, 224, 236);
+    public static readonly Color DangerColor = Color.FromArgb(218, 63, 60);
+    public static readonly Color DangerColorHover = Color.FromArgb(185, 50, 48);
 
-    public static readonly Font BaseFont = new("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
-    public static readonly Font TitleFont = new("Segoe UI", 18F, FontStyle.Bold, GraphicsUnit.Point);
-    public static readonly Font SectionTitleFont = new("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point);
-    public static readonly Font HeaderFont = new("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+    public static readonly Font BaseFont = new("Segoe UI", 11F, FontStyle.Regular, GraphicsUnit.Point);
+    public static readonly Font TitleFont = new("Segoe UI", 22F, FontStyle.Bold, GraphicsUnit.Point);
+    public static readonly Font SectionTitleFont = new("Segoe UI", 13F, FontStyle.Bold, GraphicsUnit.Point);
+    public static readonly Font HeaderFont = new("Segoe UI", 11F, FontStyle.Bold, GraphicsUnit.Point);
 
     public static void ApplyMinimalStyle(Form form)
     {
         form.Font = BaseFont;
         form.BackColor = BackgroundColor;
         form.ForeColor = TextColor;
-        form.Padding = new Padding(24);
+        form.Padding = new Padding(32);
+        form.AutoScaleMode = AutoScaleMode.Dpi;
     }
 
     public static Label CreateTitleLabel(string text)
@@ -65,8 +66,9 @@ public static class UiTheme
         textBox.BorderStyle = BorderStyle.FixedSingle;
         textBox.BackColor = SurfaceColor;
         textBox.ForeColor = TextColor;
-        textBox.Margin = new Padding(0, 4, 0, 12);
-        textBox.MinimumSize = new Size(200, 32);
+        textBox.Margin = new Padding(0, 6, 0, 16);
+        textBox.MinimumSize = new Size(280, 36);
+        textBox.Dock = DockStyle.Fill;
     }
 
     public static void StyleComboBox(ComboBox comboBox)
@@ -74,15 +76,19 @@ public static class UiTheme
         comboBox.FlatStyle = FlatStyle.Flat;
         comboBox.BackColor = SurfaceColor;
         comboBox.ForeColor = TextColor;
-        comboBox.Margin = new Padding(0, 4, 0, 12);
+        comboBox.Margin = new Padding(0, 6, 0, 16);
         comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        comboBox.Dock = DockStyle.Fill;
+        comboBox.MinimumSize = new Size(280, 36);
+        comboBox.IntegralHeight = false;
     }
 
     public static void StyleCheckBox(CheckBox checkBox)
     {
         checkBox.FlatStyle = FlatStyle.Flat;
         checkBox.ForeColor = TextColor;
-        checkBox.Margin = new Padding(0, 12, 0, 0);
+        checkBox.Margin = new Padding(0, 16, 0, 0);
+        checkBox.AutoSize = true;
     }
 
     public static void StylePrimaryButton(Button button)
@@ -116,11 +122,12 @@ public static class UiTheme
     {
         button.FlatStyle = FlatStyle.Flat;
         button.FlatAppearance.BorderSize = 0;
-        button.Padding = new Padding(16, 8, 16, 8);
+        button.Padding = new Padding(20, 10, 20, 10);
         button.Margin = new Padding(8, 0, 0, 0);
         button.AutoSize = true;
-        button.MinimumSize = new Size(0, 38);
+        button.MinimumSize = new Size(160, 44);
         button.Cursor = Cursors.Hand;
+        button.UseVisualStyleBackColor = false;
     }
 
     public static void StyleDataGrid(DataGridView grid)
@@ -147,6 +154,8 @@ public static class UiTheme
         grid.GridColor = BorderColor;
         grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
         grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
+        grid.Dock = DockStyle.Fill;
+        grid.Margin = new Padding(0, 8, 0, 0);
     }
 
     public static void StyleTreeView(TreeView tree)

@@ -40,8 +40,8 @@ public class RegistroForm : Form
         MinimizeBox = true;
         AcceptButton = _btnRegistrar;
         CancelButton = _btnCancelar;
-        Width = 560;
-        Height = 520;
+        Size = new Size(780, 640);
+        MinimumSize = new Size(640, 560);
 
         UiTheme.ApplyMinimalStyle(this);
 
@@ -93,7 +93,9 @@ public class RegistroForm : Form
             FlowDirection = FlowDirection.RightToLeft,
             Dock = DockStyle.Fill,
             AutoSize = true,
-            Margin = new Padding(0, 20, 0, 0)
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0, 28, 0, 0),
+            WrapContents = false
         };
         panelBotones.Controls.Add(_btnRegistrar);
         panelBotones.Controls.Add(_btnCancelar);
@@ -103,6 +105,9 @@ public class RegistroForm : Form
         card.AutoSize = true;
         card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         card.Anchor = AnchorStyles.None;
+        card.Padding = new Padding(40, 40, 40, 32);
+        card.MaximumSize = new Size(620, 0);
+        card.MinimumSize = new Size(560, 0);
         card.Controls.Add(layout);
 
         var root = new TableLayoutPanel
@@ -128,7 +133,7 @@ public class RegistroForm : Form
         Text = text,
         AutoSize = true,
         ForeColor = UiTheme.MutedTextColor,
-        Margin = new Padding(0, 12, 0, 4)
+        Margin = new Padding(0, 16, 0, 6)
     };
 
     private void BtnRegistrar_Click(object? sender, EventArgs e)

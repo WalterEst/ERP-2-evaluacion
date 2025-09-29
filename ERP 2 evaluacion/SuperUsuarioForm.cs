@@ -41,8 +41,8 @@ public class SuperUsuarioForm : Form
         StartPosition = FormStartPosition.CenterParent;
         AcceptButton = _btnCrear;
         CancelButton = _btnCancelar;
-        Width = 560;
-        Height = 520;
+        Size = new Size(780, 640);
+        MinimumSize = new Size(640, 560);
 
         UiTheme.ApplyMinimalStyle(this);
         UiTheme.StyleTextInput(_txtNombreCompleto);
@@ -110,7 +110,9 @@ public class SuperUsuarioForm : Form
             FlowDirection = FlowDirection.RightToLeft,
             Dock = DockStyle.Fill,
             AutoSize = true,
-            Margin = new Padding(0, 20, 0, 0)
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0, 28, 0, 0),
+            WrapContents = false
         };
         panelBotones.Controls.Add(_btnCrear);
         panelBotones.Controls.Add(_btnCancelar);
@@ -121,6 +123,9 @@ public class SuperUsuarioForm : Form
         card.AutoSize = true;
         card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         card.Anchor = AnchorStyles.None;
+        card.Padding = new Padding(40, 40, 40, 32);
+        card.MaximumSize = new Size(620, 0);
+        card.MinimumSize = new Size(560, 0);
         card.Controls.Add(layout);
 
         var root = new TableLayoutPanel
@@ -146,7 +151,7 @@ public class SuperUsuarioForm : Form
         Text = text,
         AutoSize = true,
         ForeColor = UiTheme.MutedTextColor,
-        Margin = new Padding(0, 12, 0, 4)
+        Margin = new Padding(0, 16, 0, 6)
     };
 
     private void CrearSuperUsuario()

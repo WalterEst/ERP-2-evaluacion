@@ -16,8 +16,9 @@ public class AccesosForm : Form
     public AccesosForm()
     {
         Text = "Accesos";
-        Width = 900;
-        Height = 600;
+        StartPosition = FormStartPosition.CenterParent;
+        Size = new Size(1280, 840);
+        MinimumSize = new Size(1120, 720);
 
         UiTheme.ApplyMinimalStyle(this);
 
@@ -27,7 +28,7 @@ public class AccesosForm : Form
         UiTheme.StylePrimaryButton(_btnGuardar);
         _btnGuardar.Margin = new Padding(0, 0, 0, 0);
 
-        _grid.Margin = new Padding(0, 16, 0, 0);
+        _grid.Margin = new Padding(0, 24, 0, 0);
 
         var headerLayout = new TableLayoutPanel
         {
@@ -42,7 +43,6 @@ public class AccesosForm : Form
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         headerLayout.Controls.Add(UiTheme.CreateSectionLabel("Perfil"), 0, 0);
         headerLayout.Controls.Add(_cmbPerfil, 1, 0);
-        _cmbPerfil.Dock = DockStyle.Fill;
         _cmbPerfil.Margin = new Padding(16, 0, 0, 0);
 
         var panelBotones = new FlowLayoutPanel
@@ -50,12 +50,16 @@ public class AccesosForm : Form
             Dock = DockStyle.Bottom,
             FlowDirection = FlowDirection.RightToLeft,
             AutoSize = true,
-            Padding = new Padding(0, 16, 0, 0)
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(0, 24, 0, 0),
+            WrapContents = false
         };
         panelBotones.Controls.Add(_btnGuardar);
 
         var card = UiTheme.CreateCardPanel();
         card.Dock = DockStyle.Fill;
+        card.Padding = new Padding(32, 32, 32, 24);
+        card.AutoScroll = true;
         card.Controls.Add(headerLayout);
         card.Controls.Add(panelBotones);
         card.Controls.Add(_grid);
