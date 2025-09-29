@@ -120,6 +120,12 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
             }
 
             // Crear todos los nodos primero
+            if (pantallas.Count == 0)
+            {
+                MessageBox.Show("Este usuario no tiene pantallas visibles. Asigne permisos en Accesos.", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
             var nodosPorId = pantallas.ToDictionary(p => p.Id, p => new TreeNode(p.Nombre) { Tag = p });
 
             // Enlazar hijos a padres y agregar raíces
