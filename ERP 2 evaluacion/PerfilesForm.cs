@@ -1,5 +1,5 @@
+using Microsoft.Data.SqlClient;
 using System.Data;
-using System.Data.SqlClient;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -137,6 +137,7 @@ public class PerfilesForm : Form
         try
         {
             using var connection = Db.GetConnection();
+            connection.Open();
             using var verificarNombre = new SqlCommand("SELECT COUNT(*) FROM Perfil WHERE NombrePerfil = @nombre AND (@id IS NULL OR IdPerfil <> @id)", connection);
             verificarNombre.Parameters.AddWithValue("@nombre", nombre);
             verificarNombre.Parameters.AddWithValue("@id", (object?)_idSeleccionado ?? DBNull.Value);
@@ -198,6 +199,7 @@ public class PerfilesForm : Form
         try
         {
             using var connection = Db.GetConnection();
+            connection.Open();
             using var validar = new SqlCommand("SELECT COUNT(*) FROM UsuarioPerfil WHERE IdPerfil = @id", connection);
             validar.Parameters.AddWithValue("@id", _idSeleccionado.Value);
             if ((int)validar.ExecuteScalar() > 0)

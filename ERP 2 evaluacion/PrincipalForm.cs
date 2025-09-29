@@ -1,6 +1,6 @@
+using Microsoft.Data.SqlClient;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -47,6 +47,7 @@ public class PrincipalForm : Form
         try
         {
             using var connection = Db.GetConnection();
+            connection.Open();
             using var command = new SqlCommand(@"SELECT DISTINCT p.IdPantalla, p.Codigo, p.NombrePantalla, p.IdPadre, p.Orden
 FROM Pantalla p
 INNER JOIN PerfilPantallaAcceso a ON a.IdPantalla = p.IdPantalla AND a.PuedeVer = 1 AND a.Activo = 1
