@@ -25,9 +25,9 @@ public class LoginForm : Form
     {
         Text = "Ingreso";
         StartPosition = FormStartPosition.CenterScreen;
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = true;
+        MinimizeBox = true;
         AcceptButton = _btnIngresar;
         Width = 480;
         Height = 360;
