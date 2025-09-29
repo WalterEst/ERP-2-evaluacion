@@ -32,9 +32,9 @@ public class RegistroForm : Form
     {
         Text = "Registro";
         StartPosition = FormStartPosition.CenterParent;
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = true;
+        MinimizeBox = true;
         AcceptButton = _btnRegistrar;
         CancelButton = _btnCancelar;
         Width = 560;
