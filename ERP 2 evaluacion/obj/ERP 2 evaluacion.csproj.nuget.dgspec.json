@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Walte\\source\\repos\\ERP 2 evaluacion\\ERP 2 evaluacion\\ERP 2 evaluacion.csproj": {}
+    "C:\\Users\\Walte\\Source\\Repos\\ERP-2-evaluacion\\ERP 2 evaluacion\\ERP 2 evaluacion.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Walte\\source\\repos\\ERP 2 evaluacion\\ERP 2 evaluacion\\ERP 2 evaluacion.csproj": {
+    "C:\\Users\\Walte\\Source\\Repos\\ERP-2-evaluacion\\ERP 2 evaluacion\\ERP 2 evaluacion.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Walte\\source\\repos\\ERP 2 evaluacion\\ERP 2 evaluacion\\ERP 2 evaluacion.csproj",
+        "projectUniqueName": "C:\\Users\\Walte\\Source\\Repos\\ERP-2-evaluacion\\ERP 2 evaluacion\\ERP 2 evaluacion.csproj",
         "projectName": "ERP 2 evaluacion",
-        "projectPath": "C:\\Users\\Walte\\source\\repos\\ERP 2 evaluacion\\ERP 2 evaluacion\\ERP 2 evaluacion.csproj",
+        "projectPath": "C:\\Users\\Walte\\Source\\Repos\\ERP-2-evaluacion\\ERP 2 evaluacion\\ERP 2 evaluacion.csproj",
         "packagesPath": "C:\\Users\\Walte\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Walte\\source\\repos\\ERP 2 evaluacion\\ERP 2 evaluacion\\obj\\",
+        "outputPath": "C:\\Users\\Walte\\Source\\Repos\\ERP-2-evaluacion\\ERP 2 evaluacion\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -49,6 +49,16 @@
       "frameworks": {
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
+          "dependencies": {
+            "Microsoft.Data.SqlClient": {
+              "target": "Package",
+              "version": "[5.1.1, )"
+            },
+            "System.Configuration.ConfigurationManager": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",

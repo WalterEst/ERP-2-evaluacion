@@ -1,0 +1,43 @@
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP 2 evaluacion.csproj.AssemblyReference.cache
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP 2 evaluacion.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP 2 evaluacion.AssemblyInfoInputs.cache
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP 2 evaluacion.AssemblyInfo.cs
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP 2 evaluacion.csproj.CoreCompileInputs.cache
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP 2 evaluacion.sourcelink.json
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\ERP 2 evaluacion.exe
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\ERP 2 evaluacion.dll.config
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\ERP 2 evaluacion.deps.json
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\ERP 2 evaluacion.runtimeconfig.json
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\ERP 2 evaluacion.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\ERP 2 evaluacion.pdb
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Azure.Core.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Azure.Identity.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Microsoft.Bcl.AsyncInterfaces.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Microsoft.Data.SqlClient.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Microsoft.Identity.Client.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Microsoft.Identity.Client.Extensions.Msal.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Microsoft.IdentityModel.Logging.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Microsoft.IdentityModel.Protocols.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Microsoft.IdentityModel.Tokens.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\Microsoft.SqlServer.Server.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\System.IdentityModel.Tokens.Jwt.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\System.Memory.Data.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\System.Runtime.Caching.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\runtimes\unix\lib\net6.0\Microsoft.Data.SqlClient.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\runtimes\win\lib\net6.0\Microsoft.Data.SqlClient.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\runtimes\win-arm\native\Microsoft.Data.SqlClient.SNI.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\runtimes\win-arm64\native\Microsoft.Data.SqlClient.SNI.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\runtimes\win-x64\native\Microsoft.Data.SqlClient.SNI.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\runtimes\win-x86\native\Microsoft.Data.SqlClient.SNI.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\bin\Debug\net8.0-windows\runtimes\win\lib\net6.0\System.Runtime.Caching.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP 2 ev.F3B28990.Up2Date
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP 2 evaluacion.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\refint\ERP 2 evaluacion.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP 2 evaluacion.pdb
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP 2 evaluacion.genruntimeconfig.cache
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ref\ERP 2 evaluacion.dll
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP_2_evaluacion.PerfilesForm.resources
+C:\Users\Walte\Source\Repos\ERP-2-evaluacion\ERP 2 evaluacion\obj\Debug\net8.0-windows\ERP 2 evaluacion.csproj.GenerateResource.cache

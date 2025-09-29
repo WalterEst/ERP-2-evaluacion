@@ -26,15 +26,15 @@ public class RegistroForm : Form
     private readonly Button _btnCancelar = new() { Text = "Cancelar", DialogResult = DialogResult.Cancel };
     private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(0, 8, 0, 0) };
 
-    private static readonly Regex CorreoRegex = new("^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex CorreoRegex = new(@"^[^\s]+@[^@\s]+\.[^\s]+$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public RegistroForm()
     {
         Text = "Registro";
         StartPosition = FormStartPosition.CenterParent;
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = true;
+        MinimizeBox = true;
         AcceptButton = _btnRegistrar;
         CancelButton = _btnCancelar;
         Width = 560;

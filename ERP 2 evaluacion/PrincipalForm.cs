@@ -1,149 +1,162 @@
 using Microsoft.Data.SqlClient;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace ERP_2_evaluacion;
-
-public class PrincipalForm : Form
+namespace ERP_2_evaluacion
 {
-    private readonly int _idUsuario;
-    private readonly string _nombreUsuario;
-    private readonly TreeView _arbolPantallas = new() { Dock = DockStyle.Fill };
-    private readonly Label _lblBienvenida = new() { Dock = DockStyle.Top, Padding = new Padding(0, 0, 0, 12) };
-
-    private class PantallaNodo
+    public class PrincipalForm : Form
     {
-        public int Id { get; init; }
-        public int? IdPadre { get; init; }
-        public string Codigo { get; init; } = string.Empty;
-        public string Nombre { get; init; } = string.Empty;
-        public int Orden { get; init; }
-    }
+        private readonly int _idUsuario;
+        private readonly string _nombreUsuario;
 
-    public PrincipalForm(int idUsuario, string nombreUsuario)
-    {
-        _idUsuario = idUsuario;
-        _nombreUsuario = nombreUsuario;
-        Text = "Principal";
-        WindowState = FormWindowState.Maximized;
+        private readonly TreeView _arbolPantallas = new() { Dock = DockStyle.Fill };
+        private readonly Label _lblBienvenida = new() { Dock = DockStyle.Top, Padding = new Padding(0, 0, 0, 12) };
 
-        UiTheme.ApplyMinimalStyle(this);
-        Padding = new Padding(32);
-
-        _lblBienvenida.Text = $"Bienvenido(a), {_nombreUsuario}";
-        _lblBienvenida.Font = UiTheme.TitleFont;
-        _lblBienvenida.ForeColor = UiTheme.TextColor;
-        _lblBienvenida.Margin = new Padding(0, 0, 0, 0);
-
-        var lblIndicaciones = new Label
+        private class PantallaNodo
         {
-            Text = "Selecciona una opción del menú",
-            AutoSize = true,
-            ForeColor = UiTheme.MutedTextColor,
-            Dock = DockStyle.Top,
-            Padding = new Padding(0, 0, 0, 16),
-            Font = UiTheme.SectionTitleFont
-        };
+            public int Id { get; init; }
+            public int? IdPadre { get; init; }
+            public string Codigo { get; init; } = string.Empty;
+            public string Nombre { get; init; } = string.Empty;
+            public int Orden { get; init; }
+        }
 
-        UiTheme.StyleTreeView(_arbolPantallas);
-        _arbolPantallas.Margin = new Padding(0, 16, 0, 0);
-        _arbolPantallas.NodeMouseDoubleClick += ArbolPantallas_NodeMouseDoubleClick;
-
-        var card = UiTheme.CreateCardPanel();
-        card.Dock = DockStyle.Fill;
-        card.Controls.Add(_lblBienvenida);
-        card.Controls.Add(lblIndicaciones);
-        card.Controls.Add(_arbolPantallas);
-
-        Controls.Add(card);
-
-        Load += (_, _) => CargarMenu();
-    }
-
-    private void CargarMenu()
-    {
-        _arbolPantallas.Nodes.Clear();
-        var pantallas = new List<PantallaNodo>();
-
-        try
+        public PrincipalForm(int idUsuario, string nombreUsuario)
         {
-            using var connection = Db.GetConnection();
-            connection.Open();
-            using var command = new SqlCommand(@"SELECT DISTINCT p.IdPantalla, p.Codigo, p.NombrePantalla, p.IdPadre, p.Orden
-FROM Pantalla p
-INNER JOIN PerfilPantallaAcceso a ON a.IdPantalla = p.IdPantalla AND a.PuedeVer = 1 AND a.Activo = 1
-INNER JOIN UsuarioPerfil up ON up.IdPerfil = a.IdPerfil
-WHERE up.IdUsuario = @idUsuario
-ORDER BY ISNULL(p.IdPadre, 0), p.Orden, p.NombrePantalla", connection);
-            command.Parameters.AddWithValue("@idUsuario", _idUsuario);
+            _idUsuario = idUsuario;
+            _nombreUsuario = nombreUsuario;
 
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
+            Text = "Principal";
+            WindowState = FormWindowState.Maximized;
+
+            UiTheme.ApplyMinimalStyle(this);
+            Padding = new Padding(32);
+
+            _lblBienvenida.Text = $"Bienvenido(a), {_nombreUsuario}";
+            _lblBienvenida.Font = UiTheme.TitleFont;
+            _lblBienvenida.ForeColor = UiTheme.TextColor;
+            _lblBienvenida.Margin = new Padding(0, 0, 0, 0);
+
+            var lblIndicaciones = new Label
             {
-                pantallas.Add(new PantallaNodo
+                Text = "Selecciona una opción del menú",
+                AutoSize = true,
+                ForeColor = UiTheme.MutedTextColor,
+                Dock = DockStyle.Top,
+                Padding = new Padding(0, 0, 0, 16),
+                Font = UiTheme.SectionTitleFont
+            };
+
+            UiTheme.StyleTreeView(_arbolPantallas);
+            _arbolPantallas.Margin = new Padding(0, 16, 0, 0);
+            _arbolPantallas.NodeMouseDoubleClick += ArbolPantallas_NodeMouseDoubleClick;
+
+            var card = UiTheme.CreateCardPanel();
+            card.Dock = DockStyle.Fill;
+            card.Controls.Add(_lblBienvenida);
+            card.Controls.Add(lblIndicaciones);
+            card.Controls.Add(_arbolPantallas);
+
+            Controls.Add(card);
+
+            Load += (_, _) => CargarMenu();
+        }
+
+        private void CargarMenu()
+        {
+            _arbolPantallas.Nodes.Clear();
+            var pantallas = new List<PantallaNodo>();
+
+            try
+            {
+                using (var connection = Db.GetConnection())
                 {
-                    Id = reader.GetInt32(0),
-                    Codigo = reader.GetString(1),
-                    Nombre = reader.GetString(2),
-                    IdPadre = reader.IsDBNull(3) ? null : reader.GetInt32(3),
-                    Orden = reader.IsDBNull(4) ? 0 : reader.GetInt32(4)
-                });
+                    connection.Open();
+
+                    using (var command = new SqlCommand(@"
+SELECT p.IdPantalla, p.Codigo, p.NombrePantalla, p.IdPadre, p.Orden
+FROM Pantalla p
+WHERE p.Activo = 1
+  AND EXISTS (
+        SELECT 1
+        FROM UsuarioPerfil up
+        JOIN PerfilPantallaAcceso pa ON pa.IdPerfil = up.IdPerfil
+        WHERE up.IdUsuario = @IdUsuario
+          AND pa.IdPantalla = p.IdPantalla
+          AND pa.PuedeVer = 1
+          AND pa.Activo = 1
+  )
+ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
+         p.IdPadre, p.Orden, p.NombrePantalla;", connection))
+                    {
+                        command.Parameters.AddWithValue("@IdUsuario", _idUsuario);
+
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                pantallas.Add(new PantallaNodo
+                                {
+                                    Id = reader.GetInt32(0),
+                                    Codigo = reader.GetString(1),
+                                    Nombre = reader.GetString(2),
+                                    IdPadre = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3),
+                                    Orden = reader.IsDBNull(4) ? 0 : reader.GetInt32(4)
+                                });
+                            }
+                        }
+                    }
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"No fue posible cargar el menú: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return;
-        }
-
-        var nodosPorId = pantallas.ToDictionary(p => p.Id, p =>
-        {
-            var nodo = new TreeNode(p.Nombre) { Tag = p };
-            return nodo;
-        });
-
-        foreach (var pantalla in pantallas.OrderBy(p => p.Orden))
-        {
-            var nodo = nodosPorId[pantalla.Id];
-            if (pantalla.IdPadre.HasValue && nodosPorId.TryGetValue(pantalla.IdPadre.Value, out var padre))
+            catch (Exception ex)
             {
-                padre.Nodes.Add(nodo);
+                MessageBox.Show($"No fue posible cargar el menú: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
-            else
+
+            // Crear todos los nodos primero
+            var nodosPorId = pantallas.ToDictionary(p => p.Id, p => new TreeNode(p.Nombre) { Tag = p });
+
+            // Enlazar hijos a padres y agregar raíces
+            foreach (var p in pantallas.OrderBy(x => x.Orden))
             {
-                _arbolPantallas.Nodes.Add(nodo);
+                var nodo = nodosPorId[p.Id];
+                if (p.IdPadre.HasValue && nodosPorId.TryGetValue(p.IdPadre.Value, out var padre))
+                    padre.Nodes.Add(nodo);
+                else
+                    _arbolPantallas.Nodes.Add(nodo);
             }
+
+            _arbolPantallas.ExpandAll();
         }
 
-        _arbolPantallas.ExpandAll();
-    }
-
-    private void ArbolPantallas_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e)
-    {
-        if (e.Node?.Tag is not PantallaNodo pantalla)
+        private void ArbolPantallas_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e)
         {
-            return;
-        }
+            if (e.Node?.Tag is not PantallaNodo pantalla)
+                return;
 
-        Form? formulario = pantalla.Codigo switch
-        {
-            "USUARIOS" => new UsuariosForm(),
-            "PERFILES" => new PerfilesForm(),
-            "ACCESOS" => new AccesosForm(),
-            _ => null
-        };
-
-        if (formulario != null)
-        {
-            using (formulario)
+            Form? formulario = pantalla.Codigo switch
             {
-                formulario.StartPosition = FormStartPosition.CenterParent;
-                formulario.ShowDialog(this);
+                "USUARIOS" => new UsuariosForm(),
+                "PERFILES" => new PerfilesForm(),
+                "ACCESOS" => new AccesosForm(),
+                _ => null
+            };
+
+            if (formulario != null)
+            {
+                using (formulario)
+                {
+                    formulario.StartPosition = FormStartPosition.CenterParent;
+                    formulario.ShowDialog(this);
+                }
+                CargarMenu();
             }
-            CargarMenu();
         }
     }
 }
