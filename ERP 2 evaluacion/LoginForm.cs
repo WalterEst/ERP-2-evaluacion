@@ -19,6 +19,7 @@ public class LoginForm : Form
     private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña" };
     private readonly Button _btnIngresar = new() { Text = "Ingresar" };
     private readonly Button _btnRegistrarse = new() { Text = "Crear cuenta" };
+    private readonly Button _btnSuperUsuario = new() { Text = "Crear super usuario" };
     private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(0, 8, 0, 0) };
 
     public LoginForm()
@@ -38,9 +39,13 @@ public class LoginForm : Form
         UiTheme.StyleTextInput(_txtClave);
         UiTheme.StylePrimaryButton(_btnIngresar);
         UiTheme.StyleSecondaryButton(_btnRegistrarse);
+        UiTheme.StyleSecondaryButton(_btnSuperUsuario);
+        _btnSuperUsuario.Visible = false;
 
         _btnIngresar.Click += BtnIngresar_Click;
         _btnRegistrarse.Click += BtnRegistrarse_Click;
+        _btnSuperUsuario.Click += BtnSuperUsuario_Click;
+        Load += LoginForm_Load;
 
         var layout = new TableLayoutPanel
         {
@@ -75,6 +80,7 @@ public class LoginForm : Form
         };
         panelBotones.Controls.Add(_btnIngresar);
         panelBotones.Controls.Add(_btnRegistrarse);
+        panelBotones.Controls.Add(_btnSuperUsuario);
         layout.Controls.Add(panelBotones, 0, 7);
 
         var card = UiTheme.CreateCardPanel();
@@ -99,6 +105,19 @@ public class LoginForm : Form
         root.Controls.Add(card, 1, 1);
 
         Controls.Add(root);
+    }
+
+    private void LoginForm_Load(object? sender, EventArgs e)
+    {
+        try
+        {
+            _btnSuperUsuario.Visible = !SuperUsuarioExiste();
+        }
+        catch (Exception ex)
+        {
+            _btnSuperUsuario.Visible = false;
+            MessageBox.Show($"No se pudo verificar el super usuario: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     private void BtnIngresar_Click(object? sender, EventArgs e)
@@ -172,5 +191,26 @@ FROM Usuario WHERE NombreUsuario = @usuario OR Correo = @usuario", connection);
             _lblMensaje.ForeColor = UiTheme.AccentColor;
             _lblMensaje.Text = "Cuenta creada con éxito. Ahora puedes iniciar sesión.";
         }
+    }
+
+    private void BtnSuperUsuario_Click(object? sender, EventArgs e)
+    {
+        using var super = new SuperUsuarioForm();
+        if (super.ShowDialog(this) == DialogResult.OK)
+        {
+            _btnSuperUsuario.Visible = false;
+            _lblMensaje.ForeColor = UiTheme.AccentColor;
+            _lblMensaje.Text = "Super usuario creado. Inicia sesión con esas credenciales.";
+        }
+    }
+
+    private static bool SuperUsuarioExiste()
+    {
+        var resultado = Db.Scalar(@"SELECT TOP 1 1
+FROM UsuarioPerfil up
+JOIN Perfil p ON p.IdPerfil = up.IdPerfil
+WHERE p.Codigo = @codigo;", parametros => parametros.AddWithValue("@codigo", "SUPERADMIN"));
+
+        return resultado != null && resultado != DBNull.Value;
     }
 }

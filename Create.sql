@@ -44,7 +44,10 @@ CREATE TABLE dbo.Pantalla
     Icono NVARCHAR(60) NULL,
     Orden INT NOT NULL CONSTRAINT DF_Pantalla_Orden DEFAULT(0),
     Activo BIT NOT NULL CONSTRAINT DF_Pantalla_Activo DEFAULT(1),
-    CONSTRAINT FK_Pantalla_Padre FOREIGN KEY(IdPadre) REFERENCES dbo.Pantalla(IdPantalla) ON DELETE SET NULL
+    FechaCreacion DATETIME NOT NULL CONSTRAINT DF_Pantalla_FechaCreacion DEFAULT(GETDATE()),
+    CreadoPor NVARCHAR(100) NULL,
+    CONSTRAINT UQ_Pantalla_Ruta UNIQUE (Ruta),
+    CONSTRAINT FK_Pantalla_Padre FOREIGN KEY(IdPadre) REFERENCES dbo.Pantalla(IdPantalla)
 );
 GO
 
