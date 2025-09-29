@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace ERP_2_evaluacion;
@@ -30,6 +31,75 @@ public static class UiTheme
         form.ForeColor = TextColor;
         form.Padding = new Padding(32);
         form.AutoScaleMode = AutoScaleMode.Dpi;
+
+        AttachMenuStripHandler(form);
+    }
+
+    private static void AttachMenuStripHandler(Control control)
+    {
+        StyleMenuStripsInControl(control);
+
+        control.ControlAdded -= Control_ControlAdded;
+        control.ControlAdded += Control_ControlAdded;
+
+        foreach (Control child in control.Controls)
+        {
+            AttachMenuStripHandler(child);
+        }
+    }
+
+    private static void Control_ControlAdded(object? sender, ControlEventArgs e)
+    {
+        AttachMenuStripHandler(e.Control);
+    }
+
+    private static void StyleMenuStripsInControl(Control control)
+    {
+        if (control is MenuStrip menuStrip)
+        {
+            StyleMenuStrip(menuStrip);
+        }
+
+        foreach (Control child in control.Controls)
+        {
+            StyleMenuStripsInControl(child);
+        }
+    }
+
+    public static void StyleMenuStrip(MenuStrip menuStrip)
+    {
+        menuStrip.RenderMode = ToolStripRenderMode.System;
+        menuStrip.ImageScalingSize = new Size(20, 20);
+        menuStrip.Padding = new Padding(4, 2, 4, 2);
+        menuStrip.AutoSize = true;
+
+        foreach (var item in menuStrip.Items.OfType<ToolStripMenuItem>())
+        {
+            StyleMenuItem(item);
+        }
+    }
+
+    private static void StyleMenuItem(ToolStripMenuItem item)
+    {
+        item.AutoSize = true;
+        item.Margin = Padding.Empty;
+        item.Padding = new Padding(6, 2, 6, 2);
+        item.ShowShortcutKeys = true;
+        item.ImageScaling = ToolStripItemImageScaling.SizeToFit;
+
+        if (item.DropDown is ToolStripDropDownMenu dropDown)
+        {
+            dropDown.AutoSize = true;
+            dropDown.ShowImageMargin = true;
+            dropDown.ShowCheckMargin = false;
+            dropDown.Padding = new Padding(2);
+            dropDown.RenderMode = ToolStripRenderMode.System;
+        }
+
+        foreach (var child in item.DropDownItems.OfType<ToolStripMenuItem>())
+        {
+            StyleMenuItem(child);
+        }
     }
 
     public static Label CreateTitleLabel(string text)

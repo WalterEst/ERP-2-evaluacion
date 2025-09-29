@@ -19,6 +19,7 @@ public class UsuariosForm : Form
     private readonly Button _btnEliminar = new() { Text = "Eliminar" };
     private readonly Button _btnReiniciar = new() { Text = "Reiniciar contraseña" };
     private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(8, 0, 0, 0) };
+    private readonly SplitContainer _splitContainer;
 
     private int? _idSeleccionado;
 
@@ -47,49 +48,81 @@ public class UsuariosForm : Form
 
         var panelEdicion = CrearPanelEdicion();
 
-        var contenedor = new SplitContainer
+        _splitContainer = new SplitContainer
         {
             Dock = DockStyle.Fill,
             Orientation = Orientation.Horizontal,
             BorderStyle = BorderStyle.None,
-            SplitterWidth = 12,
-            Panel1MinSize = 320,
-            Panel2MinSize = 260
+            SplitterWidth = 12
         };
 
-        contenedor.Panel1.BackColor = Color.Transparent;
-        contenedor.Panel2.BackColor = Color.Transparent;
+        _splitContainer.Panel1.BackColor = Color.Transparent;
+        _splitContainer.Panel2.BackColor = Color.Transparent;
 
         var gridCard = UiTheme.CreateCardPanel();
         gridCard.Padding = new Padding(32, 32, 32, 24);
         gridCard.Margin = new Padding(0, 0, 0, 24);
         gridCard.Controls.Add(_grid);
-        contenedor.Panel1.Controls.Add(gridCard);
-        contenedor.Panel2.Controls.Add(panelEdicion);
+        _splitContainer.Panel1.Controls.Add(gridCard);
+        _splitContainer.Panel2.Controls.Add(panelEdicion);
 
-        Controls.Add(contenedor);
+        Controls.Add(_splitContainer);
 
-        void AjustarDistribucion(object? _, EventArgs __)
-        {
-            var distancia = (int)(contenedor.Height * 0.55);
-            var minimoPanel1 = contenedor.Panel1MinSize;
-            var minimoPanel2 = contenedor.Panel2MinSize;
-            distancia = Math.Max(minimoPanel1, Math.Min(distancia, contenedor.Height - minimoPanel2));
-            if (distancia > 0 && distancia < contenedor.Height)
-            {
-                contenedor.SplitterDistance = distancia;
-            }
-        }
-
-        Shown += AjustarDistribucion;
-        contenedor.Resize += AjustarDistribucion;
-
-        Load += (_, _) => CargarUsuarios();
+        Load += UsuariosForm_Load;
+        SizeChanged += UsuariosForm_SizeChanged;
         _grid.SelectionChanged += Grid_SelectionChanged;
         _btnNuevo.Click += (_, _) => LimpiarFormulario();
         _btnGuardar.Click += (_, _) => GuardarUsuario();
         _btnEliminar.Click += (_, _) => EliminarUsuario();
         _btnReiniciar.Click += (_, _) => ReiniciarContrasena();
+    }
+
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        AjustarSplit();
+    }
+
+    private void UsuariosForm_Load(object? sender, EventArgs e)
+    {
+        BeginInvoke((Action)AjustarSplit);
+        CargarUsuarios();
+    }
+
+    private void UsuariosForm_SizeChanged(object? sender, EventArgs e)
+    {
+        AjustarSplit();
+    }
+
+    private void AjustarSplit()
+    {
+        var s = _splitContainer;
+        if (s.Width <= 0 && s.Height <= 0)
+        {
+            return;
+        }
+
+        s.Panel1MinSize = 150;
+        s.Panel2MinSize = 200;
+
+        int total = s.Orientation == Orientation.Vertical ? s.Width : s.Height;
+        if (total <= 0)
+        {
+            return;
+        }
+
+        int min = s.Panel1MinSize;
+        int max = total - s.Panel2MinSize - s.SplitterWidth;
+
+        if (max < min)
+        {
+            int fallback = Math.Max(0, Math.Min(min, total - s.Panel2MinSize));
+            s.SplitterDistance = fallback;
+            return;
+        }
+
+        int deseo = s.SplitterDistance > 0 ? s.SplitterDistance : total / 2;
+        s.SplitterDistance = Math.Clamp(deseo, min, max);
     }
 
     private void ConfigurarGrid()
