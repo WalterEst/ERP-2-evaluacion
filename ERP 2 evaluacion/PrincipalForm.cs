@@ -68,16 +68,16 @@ namespace ERP_2_evaluacion
 
         private void CargarMenu()
         {
+            _arbolPantallas.BeginUpdate();
             _arbolPantallas.Nodes.Clear();
-            var pantallas = new List<PantallaNodo>();
+            _lblBienvenida.Text = $"Bienvenido(a), {_nombreUsuario}";
 
             try
             {
-                using (var connection = Db.GetConnection())
-                {
-                    connection.Open();
+                using var connection = Db.GetConnection();
+                connection.Open();
 
-                    using (var command = new SqlCommand(@"
+                const string sql = """
 SELECT p.IdPantalla, p.Codigo, p.NombrePantalla, p.IdPadre, p.Orden
 FROM Pantalla p
 WHERE p.Activo = 1
@@ -91,48 +91,67 @@ WHERE p.Activo = 1
           AND pa.Activo = 1
   )
 ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
-         p.IdPadre, p.Orden, p.NombrePantalla;", connection))
-                    {
-                        command.Parameters.AddWithValue("@IdUsuario", _idUsuario);
+         p.IdPadre, p.Orden, p.NombrePantalla;
+""";
 
-                        using (var reader = command.ExecuteReader())
+                using var command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@IdUsuario", _idUsuario);
+
+                var pantallas = new List<PantallaNodo>();
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    pantallas.Add(new PantallaNodo
+                    {
+                        Id = reader.GetInt32(0),
+                        Codigo = reader.GetString(1),
+                        Nombre = reader.GetString(2),
+                        IdPadre = reader.IsDBNull(3) ? null : reader.GetInt32(3),
+                        Orden = reader.IsDBNull(4) ? 0 : reader.GetInt32(4)
+                    });
+                }
+
+                if (pantallas.Count == 0)
+                {
+                    _lblBienvenida.Text = $"Hola {_nombreUsuario}, aún no tienes accesos asignados.";
+                }
+                else
+                {
+                    var nodosPorId = new Dictionary<int, TreeNode>();
+                    foreach (var pantalla in pantallas)
+                    {
+                        nodosPorId[pantalla.Id] = new TreeNode(pantalla.Nombre) { Tag = pantalla };
+                    }
+
+                    foreach (var pantalla in pantallas
+                                 .OrderBy(p => p.IdPadre.HasValue)
+                                 .ThenBy(p => p.IdPadre ?? 0)
+                                 .ThenBy(p => p.Orden)
+                                 .ThenBy(p => p.Nombre))
+                    {
+                        var nodo = nodosPorId[pantalla.Id];
+                        if (pantalla.IdPadre.HasValue && nodosPorId.TryGetValue(pantalla.IdPadre.Value, out var padre))
                         {
-                            while (reader.Read())
-                            {
-                                pantallas.Add(new PantallaNodo
-                                {
-                                    Id = reader.GetInt32(0),
-                                    Codigo = reader.GetString(1),
-                                    Nombre = reader.GetString(2),
-                                    IdPadre = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3),
-                                    Orden = reader.IsDBNull(4) ? 0 : reader.GetInt32(4)
-                                });
-                            }
+                            padre.Nodes.Add(nodo);
+                        }
+                        else
+                        {
+                            _arbolPantallas.Nodes.Add(nodo);
                         }
                     }
+
+                    _arbolPantallas.ExpandAll();
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"No fue posible cargar el menú: {ex.Message}", "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
             }
-
-            // Crear todos los nodos primero
-            var nodosPorId = pantallas.ToDictionary(p => p.Id, p => new TreeNode(p.Nombre) { Tag = p });
-
-            // Enlazar hijos a padres y agregar raíces
-            foreach (var p in pantallas.OrderBy(x => x.Orden))
+            finally
             {
-                var nodo = nodosPorId[p.Id];
-                if (p.IdPadre.HasValue && nodosPorId.TryGetValue(p.IdPadre.Value, out var padre))
-                    padre.Nodes.Add(nodo);
-                else
-                    _arbolPantallas.Nodes.Add(nodo);
+                _arbolPantallas.EndUpdate();
             }
-
-            _arbolPantallas.ExpandAll();
         }
 
         private void ArbolPantallas_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e)
