@@ -17,7 +17,7 @@ public class UsuariosForm : Form
     private readonly Button _btnGuardar = new() { Text = "Guardar" };
     private readonly Button _btnEliminar = new() { Text = "Eliminar" };
     private readonly Button _btnReiniciar = new() { Text = "Reiniciar contraseña" };
-    private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = Color.DarkRed };
+    private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(8, 0, 0, 0) };
 
     private int? _idSeleccionado;
 
@@ -27,12 +27,39 @@ public class UsuariosForm : Form
         Width = 900;
         Height = 600;
 
+        UiTheme.ApplyMinimalStyle(this);
+
         ConfigurarGrid();
+        UiTheme.StyleDataGrid(_grid);
+
+        UiTheme.StyleTextInput(_txtNombreUsuario);
+        UiTheme.StyleTextInput(_txtCorreo);
+        UiTheme.StyleTextInput(_txtNombreCompleto);
+        UiTheme.StyleCheckBox(_chkActivo);
+        UiTheme.StyleSecondaryButton(_btnNuevo);
+        UiTheme.StylePrimaryButton(_btnGuardar);
+        UiTheme.StyleDangerButton(_btnEliminar);
+        UiTheme.StyleSecondaryButton(_btnReiniciar);
+        _btnGuardar.Margin = new Padding(0, 0, 0, 0);
+        _btnReiniciar.Margin = new Padding(0, 0, 0, 0);
 
         var panelEdicion = CrearPanelEdicion();
 
-        var contenedor = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterDistance = 320 };
-        contenedor.Panel1.Controls.Add(_grid);
+        var contenedor = new SplitContainer
+        {
+            Dock = DockStyle.Fill,
+            Orientation = Orientation.Horizontal,
+            SplitterDistance = 320,
+            BorderStyle = BorderStyle.None,
+            SplitterWidth = 8
+        };
+
+        contenedor.Panel1.BackColor = Color.Transparent;
+        contenedor.Panel2.BackColor = Color.Transparent;
+
+        var gridCard = UiTheme.CreateCardPanel();
+        gridCard.Controls.Add(_grid);
+        contenedor.Panel1.Controls.Add(gridCard);
         contenedor.Panel2.Controls.Add(panelEdicion);
 
         Controls.Add(contenedor);
@@ -62,7 +89,7 @@ public class UsuariosForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 4,
             RowCount = 5,
-            Padding = new Padding(10)
+            Padding = new Padding(0)
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
@@ -74,15 +101,15 @@ public class UsuariosForm : Form
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        layout.Controls.Add(new Label { Text = "Usuario", AutoSize = true }, 0, 0);
+        layout.Controls.Add(new Label { Text = "Usuario", AutoSize = true, ForeColor = UiTheme.MutedTextColor }, 0, 0);
         layout.Controls.Add(_txtNombreUsuario, 0, 1);
         layout.SetColumnSpan(_txtNombreUsuario, 2);
 
-        layout.Controls.Add(new Label { Text = "Correo", AutoSize = true }, 2, 0);
+        layout.Controls.Add(new Label { Text = "Correo", AutoSize = true, ForeColor = UiTheme.MutedTextColor }, 2, 0);
         layout.Controls.Add(_txtCorreo, 2, 1);
         layout.SetColumnSpan(_txtCorreo, 2);
 
-        layout.Controls.Add(new Label { Text = "Nombre completo", AutoSize = true }, 0, 2);
+        layout.Controls.Add(new Label { Text = "Nombre completo", AutoSize = true, ForeColor = UiTheme.MutedTextColor }, 0, 2);
         layout.Controls.Add(_txtNombreCompleto, 0, 3);
         layout.SetColumnSpan(_txtNombreCompleto, 4);
 
@@ -90,10 +117,16 @@ public class UsuariosForm : Form
         layout.Controls.Add(_lblMensaje, 1, 4);
         layout.SetColumnSpan(_lblMensaje, 3);
 
-        var panelBotones = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.RightToLeft, AutoSize = true };
-        panelBotones.Controls.AddRange(new Control[] { _btnReiniciar, _btnEliminar, _btnGuardar, _btnNuevo });
+        var panelBotones = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Bottom,
+            FlowDirection = FlowDirection.RightToLeft,
+            AutoSize = true,
+            Padding = new Padding(0, 16, 0, 0)
+        };
+        panelBotones.Controls.AddRange(new Control[] { _btnGuardar, _btnNuevo, _btnEliminar, _btnReiniciar });
 
-        var panel = new Panel { Dock = DockStyle.Fill };
+        var panel = UiTheme.CreateCardPanel();
         panel.Controls.Add(layout);
         panel.Controls.Add(panelBotones);
 

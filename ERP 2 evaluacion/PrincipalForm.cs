@@ -12,7 +12,7 @@ public class PrincipalForm : Form
     private readonly int _idUsuario;
     private readonly string _nombreUsuario;
     private readonly TreeView _arbolPantallas = new() { Dock = DockStyle.Fill };
-    private readonly Label _lblBienvenida = new() { Dock = DockStyle.Top, Padding = new Padding(10), Font = new Font("Segoe UI", 10, FontStyle.Bold) };
+    private readonly Label _lblBienvenida = new() { Dock = DockStyle.Top, Padding = new Padding(0, 0, 0, 12) };
 
     private class PantallaNodo
     {
@@ -30,11 +30,35 @@ public class PrincipalForm : Form
         Text = "Principal";
         WindowState = FormWindowState.Maximized;
 
+        UiTheme.ApplyMinimalStyle(this);
+        Padding = new Padding(32);
+
         _lblBienvenida.Text = $"Bienvenido(a), {_nombreUsuario}";
+        _lblBienvenida.Font = UiTheme.TitleFont;
+        _lblBienvenida.ForeColor = UiTheme.TextColor;
+        _lblBienvenida.Margin = new Padding(0, 0, 0, 0);
+
+        var lblIndicaciones = new Label
+        {
+            Text = "Selecciona una opción del menú",
+            AutoSize = true,
+            ForeColor = UiTheme.MutedTextColor,
+            Dock = DockStyle.Top,
+            Padding = new Padding(0, 0, 0, 16),
+            Font = UiTheme.SectionTitleFont
+        };
+
+        UiTheme.StyleTreeView(_arbolPantallas);
+        _arbolPantallas.Margin = new Padding(0, 16, 0, 0);
         _arbolPantallas.NodeMouseDoubleClick += ArbolPantallas_NodeMouseDoubleClick;
 
-        Controls.Add(_arbolPantallas);
-        Controls.Add(_lblBienvenida);
+        var card = UiTheme.CreateCardPanel();
+        card.Dock = DockStyle.Fill;
+        card.Controls.Add(_lblBienvenida);
+        card.Controls.Add(lblIndicaciones);
+        card.Controls.Add(_arbolPantallas);
+
+        Controls.Add(card);
 
         Load += (_, _) => CargarMenu();
     }

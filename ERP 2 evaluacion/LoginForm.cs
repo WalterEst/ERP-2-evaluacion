@@ -7,10 +7,18 @@ namespace ERP_2_evaluacion;
 
 public class LoginForm : Form
 {
+    private readonly Label _lblTitulo = UiTheme.CreateTitleLabel("Bienvenido");
+    private readonly Label _lblSubtitulo = new()
+    {
+        Text = "Ingresa con tu cuenta para continuar",
+        AutoSize = true,
+        ForeColor = UiTheme.MutedTextColor,
+        Margin = new Padding(0, 0, 0, 12)
+    };
     private readonly TextBox _txtUsuario = new() { PlaceholderText = "Usuario o correo" };
     private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña" };
     private readonly Button _btnIngresar = new() { Text = "Ingresar" };
-    private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = Color.DarkRed };
+    private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(0, 8, 0, 0) };
 
     public LoginForm()
     {
@@ -20,36 +28,73 @@ public class LoginForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         AcceptButton = _btnIngresar;
-        Width = 360;
-        Height = 240;
+        Width = 480;
+        Height = 360;
+
+        UiTheme.ApplyMinimalStyle(this);
+
+        UiTheme.StyleTextInput(_txtUsuario);
+        UiTheme.StyleTextInput(_txtClave);
+        UiTheme.StylePrimaryButton(_btnIngresar);
+
+        _btnIngresar.Click += BtnIngresar_Click;
 
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(20),
             ColumnCount = 1,
-            RowCount = 6,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
         };
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        _btnIngresar.Click += BtnIngresar_Click;
+        layout.Controls.Add(_lblTitulo, 0, 0);
+        layout.Controls.Add(_lblSubtitulo, 0, 1);
+        layout.Controls.Add(new Label { Text = "Usuario o correo", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 12, 0, 4) }, 0, 2);
+        layout.Controls.Add(_txtUsuario, 0, 3);
+        layout.Controls.Add(new Label { Text = "Contraseña", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 4, 0, 4) }, 0, 4);
+        layout.Controls.Add(_txtClave, 0, 5);
+        layout.Controls.Add(_lblMensaje, 0, 6);
 
-        layout.Controls.Add(new Label { Text = "Usuario o Correo", AutoSize = true }, 0, 0);
-        layout.Controls.Add(_txtUsuario, 0, 1);
-        layout.Controls.Add(new Label { Text = "Contraseña", AutoSize = true }, 0, 2);
-        layout.Controls.Add(_txtClave, 0, 3);
-        layout.Controls.Add(_lblMensaje, 0, 4);
-
-        var panelBotones = new FlowLayoutPanel { FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Fill };
+        var panelBotones = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.RightToLeft,
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            Margin = new Padding(0, 16, 0, 0)
+        };
         panelBotones.Controls.Add(_btnIngresar);
-        layout.Controls.Add(panelBotones, 0, 5);
+        layout.Controls.Add(panelBotones, 0, 7);
 
-        Controls.Add(layout);
+        var card = UiTheme.CreateCardPanel();
+        card.AutoSize = true;
+        card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        card.Anchor = AnchorStyles.None;
+        card.Controls.Add(layout);
+
+        var root = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 3,
+            RowCount = 3,
+            BackColor = Color.Transparent
+        };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+        root.Controls.Add(card, 1, 1);
+
+        Controls.Add(root);
     }
 
     private void BtnIngresar_Click(object? sender, EventArgs e)

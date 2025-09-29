@@ -8,9 +8,9 @@ namespace ERP_2_evaluacion;
 
 public class AccesosForm : Form
 {
-    private readonly ComboBox _cmbPerfil = new() { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly ComboBox _cmbPerfil = new() { DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly DataGridView _grid = new() { Dock = DockStyle.Fill, AutoGenerateColumns = false, AllowUserToAddRows = false };
-    private readonly Button _btnGuardar = new() { Text = "Guardar", Dock = DockStyle.Bottom };
+    private readonly Button _btnGuardar = new() { Text = "Guardar" };
     private DataTable? _tablaAccesos;
 
     public AccesosForm()
@@ -19,14 +19,48 @@ public class AccesosForm : Form
         Width = 900;
         Height = 600;
 
+        UiTheme.ApplyMinimalStyle(this);
+
         ConfigurarGrid();
+        UiTheme.StyleDataGrid(_grid);
+        UiTheme.StyleComboBox(_cmbPerfil);
+        UiTheme.StylePrimaryButton(_btnGuardar);
+        _btnGuardar.Margin = new Padding(0, 0, 0, 0);
 
-        var panelSuperior = new Panel { Dock = DockStyle.Top, Height = 50, Padding = new Padding(10) };
-        panelSuperior.Controls.Add(_cmbPerfil);
+        _grid.Margin = new Padding(0, 16, 0, 0);
 
-        Controls.Add(_grid);
-        Controls.Add(_btnGuardar);
-        Controls.Add(panelSuperior);
+        var headerLayout = new TableLayoutPanel
+        {
+            ColumnCount = 2,
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0),
+            Padding = new Padding(0, 0, 0, 8)
+        };
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        headerLayout.Controls.Add(UiTheme.CreateSectionLabel("Perfil"), 0, 0);
+        headerLayout.Controls.Add(_cmbPerfil, 1, 0);
+        _cmbPerfil.Dock = DockStyle.Fill;
+        _cmbPerfil.Margin = new Padding(16, 0, 0, 0);
+
+        var panelBotones = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Bottom,
+            FlowDirection = FlowDirection.RightToLeft,
+            AutoSize = true,
+            Padding = new Padding(0, 16, 0, 0)
+        };
+        panelBotones.Controls.Add(_btnGuardar);
+
+        var card = UiTheme.CreateCardPanel();
+        card.Dock = DockStyle.Fill;
+        card.Controls.Add(headerLayout);
+        card.Controls.Add(panelBotones);
+        card.Controls.Add(_grid);
+
+        Controls.Add(card);
 
         Load += (_, _) => CargarPerfiles();
         _cmbPerfil.SelectedIndexChanged += (_, _) => CargarAccesos();
