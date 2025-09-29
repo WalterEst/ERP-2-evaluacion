@@ -18,6 +18,7 @@ public class LoginForm : Form
     private readonly TextBox _txtUsuario = new() { PlaceholderText = "Usuario o correo" };
     private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña" };
     private readonly Button _btnIngresar = new() { Text = "Ingresar" };
+    private readonly Button _btnRegistrarse = new() { Text = "Crear cuenta" };
     private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(0, 8, 0, 0) };
 
     public LoginForm()
@@ -36,8 +37,10 @@ public class LoginForm : Form
         UiTheme.StyleTextInput(_txtUsuario);
         UiTheme.StyleTextInput(_txtClave);
         UiTheme.StylePrimaryButton(_btnIngresar);
+        UiTheme.StyleSecondaryButton(_btnRegistrarse);
 
         _btnIngresar.Click += BtnIngresar_Click;
+        _btnRegistrarse.Click += BtnRegistrarse_Click;
 
         var layout = new TableLayoutPanel
         {
@@ -71,6 +74,7 @@ public class LoginForm : Form
             Margin = new Padding(0, 16, 0, 0)
         };
         panelBotones.Controls.Add(_btnIngresar);
+        panelBotones.Controls.Add(_btnRegistrarse);
         layout.Controls.Add(panelBotones, 0, 7);
 
         var card = UiTheme.CreateCardPanel();
@@ -100,6 +104,7 @@ public class LoginForm : Form
     private void BtnIngresar_Click(object? sender, EventArgs e)
     {
         _lblMensaje.Text = string.Empty;
+        _lblMensaje.ForeColor = UiTheme.DangerColor;
         var usuario = _txtUsuario.Text.Trim();
         var clave = _txtClave.Text;
 
@@ -156,6 +161,16 @@ FROM Usuario WHERE NombreUsuario = @usuario OR Correo = @usuario", connection);
         catch (Exception ex)
         {
             MessageBox.Show($"Error al iniciar sesión: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void BtnRegistrarse_Click(object? sender, EventArgs e)
+    {
+        using var registro = new RegistroForm();
+        if (registro.ShowDialog(this) == DialogResult.OK)
+        {
+            _lblMensaje.ForeColor = UiTheme.AccentColor;
+            _lblMensaje.Text = "Cuenta creada con éxito. Ahora puedes iniciar sesión.";
         }
     }
 }
