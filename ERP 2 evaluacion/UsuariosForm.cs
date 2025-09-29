@@ -1,5 +1,5 @@
+using Microsoft.Data.SqlClient;
 using System.Data;
-using System.Data.SqlClient;
 using System.Drawing;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
@@ -164,6 +164,7 @@ public class UsuariosForm : Form
         try
         {
             using var connection = Db.GetConnection();
+            connection.Open();
             using var verificarNombre = new SqlCommand("SELECT COUNT(*) FROM Usuario WHERE NombreUsuario = @nombre AND (@id IS NULL OR IdUsuario <> @id)", connection);
             verificarNombre.Parameters.AddWithValue("@nombre", nombreUsuario);
             verificarNombre.Parameters.AddWithValue("@id", (object?)_idSeleccionado ?? DBNull.Value);
@@ -237,6 +238,7 @@ VALUES(@nombre, @correo, @hash, @salt, @completo, @activo)", connection);
         try
         {
             using var connection = Db.GetConnection();
+            connection.Open();
             using var command = new SqlCommand("DELETE FROM Usuario WHERE IdUsuario = @id", connection);
             command.Parameters.AddWithValue("@id", _idSeleccionado.Value);
             command.ExecuteNonQuery();
@@ -265,6 +267,7 @@ VALUES(@nombre, @correo, @hash, @salt, @completo, @activo)", connection);
         try
         {
             using var connection = Db.GetConnection();
+            connection.Open();
             using var command = new SqlCommand("UPDATE Usuario SET ClaveHash = @hash, ClaveSalt = @salt WHERE IdUsuario = @id", connection);
             command.Parameters.Add("@hash", SqlDbType.VarBinary, SeguridadUtil.TamanoHash).Value = hash;
             command.Parameters.Add("@salt", SqlDbType.VarBinary, SeguridadUtil.TamanoSalt).Value = salt;

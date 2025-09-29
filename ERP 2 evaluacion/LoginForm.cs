@@ -1,5 +1,5 @@
+using Microsoft.Data.SqlClient;
 using System.Data;
-using System.Data.SqlClient;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -67,6 +67,7 @@ public class LoginForm : Form
         try
         {
             using var connection = Db.GetConnection();
+            connection.Open();
             using var command = new SqlCommand(@"SELECT TOP 1 IdUsuario, NombreUsuario, Correo, ClaveHash, ClaveSalt, NombreCompleto, Activo 
 FROM Usuario WHERE NombreUsuario = @usuario OR Correo = @usuario", connection);
             command.Parameters.AddWithValue("@usuario", usuario);
