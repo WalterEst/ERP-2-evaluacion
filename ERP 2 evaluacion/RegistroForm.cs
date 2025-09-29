@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Drawing;
@@ -8,6 +9,8 @@ namespace ERP_2_evaluacion;
 
 public class RegistroForm : Form
 {
+    internal const string CodigoPerfilPorDefecto = "BASICO";
+
     private readonly Label _lblTitulo = UiTheme.CreateTitleLabel("Crear una cuenta");
     private readonly Label _lblSubtitulo = new()
     {
@@ -187,8 +190,18 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);", connection);
                 throw new InvalidOperationException("No se pudo crear el usuario");
             }
 
-            _lblMensaje.ForeColor = UiTheme.AccentColor;
-            _lblMensaje.Text = "Usuario registrado correctamente";
+            var idUsuario = Convert.ToInt32(id);
+
+            try
+            {
+                AsignarPerfilPorDefecto(idUsuario, CodigoPerfilPorDefecto, "app");
+            }
+            catch (PerfilAsignacionException)
+            {
+                return;
+            }
+
+            MessageBox.Show("Usuario registrado correctamente", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
             DialogResult = DialogResult.OK;
             Close();
         }
@@ -206,6 +219,111 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);", connection);
         catch (Exception ex)
         {
             MessageBox.Show($"Error al registrar usuario: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private static void AsignarPerfilPorDefecto(int idUsuario, string codigoPerfil, string usuarioActual)
+    {
+        using var connection = Db.GetConnection();
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+
+        try
+        {
+            int idPerfil;
+            using (var obtenerPerfil = new SqlCommand(
+                       "SELECT IdPerfil FROM Perfil WHERE Codigo = @codigoPerfil AND Activo = 1;",
+                       connection, transaction))
+            {
+                obtenerPerfil.Parameters.AddWithValue("@codigoPerfil", codigoPerfil);
+                var resultado = obtenerPerfil.ExecuteScalar();
+
+                if (resultado == null)
+                {
+                    using var crearPerfil = new SqlCommand(
+                        "INSERT INTO Perfil (NombrePerfil, Codigo, Descripcion, Activo) VALUES ('Básico', @codigoPerfil, 'Perfil por defecto', 1);" +
+                        "SELECT CAST(SCOPE_IDENTITY() AS INT);", connection, transaction);
+                    crearPerfil.Parameters.AddWithValue("@codigoPerfil", codigoPerfil);
+                    var nuevoId = crearPerfil.ExecuteScalar();
+                    if (nuevoId == null)
+                    {
+                        throw new InvalidOperationException("No se pudo obtener el identificador del perfil por defecto.");
+                    }
+
+                    idPerfil = Convert.ToInt32(nuevoId);
+                }
+                else
+                {
+                    idPerfil = Convert.ToInt32(resultado);
+                }
+            }
+
+            int idPantallaPrincipal;
+            using (var obtenerPantalla = new SqlCommand(
+                       "SELECT IdPantalla FROM Pantalla WHERE Codigo = 'PRINCIPAL' AND Activo = 1;",
+                       connection, transaction))
+            {
+                var resultadoPantalla = obtenerPantalla.ExecuteScalar();
+                if (resultadoPantalla == null)
+                {
+                    throw new InvalidOperationException("Falta pantalla PRINCIPAL. Ejecute el seed de pantallas.");
+                }
+
+                idPantallaPrincipal = Convert.ToInt32(resultadoPantalla);
+            }
+
+            using (var merge = new SqlCommand(
+                       "MERGE PerfilPantallaAcceso AS tgt " +
+                       "USING (SELECT @IdPerfil AS IdPerfil, @IdPantalla AS IdPantalla) AS src " +
+                       "ON (tgt.IdPerfil = src.IdPerfil AND tgt.IdPantalla = src.IdPantalla) " +
+                       "WHEN NOT MATCHED THEN " +
+                       "  INSERT (IdPerfil, IdPantalla, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor) " +
+                       "  VALUES (src.IdPerfil, src.IdPantalla, 1, 0, 0, 0, 0, 1, GETDATE(), @usuarioActual) " +
+                       "WHEN MATCHED THEN " +
+                       "  UPDATE SET PuedeVer = 1, PuedeCrear = 0, PuedeEditar = 0, PuedeEliminar = 0, PuedeExportar = 0, Activo = 1, FechaOtorgado = GETDATE(), OtorgadoPor = @usuarioActual;",
+                       connection, transaction))
+            {
+                merge.Parameters.AddWithValue("@IdPerfil", idPerfil);
+                merge.Parameters.AddWithValue("@IdPantalla", idPantallaPrincipal);
+                merge.Parameters.AddWithValue("@usuarioActual", usuarioActual);
+                merge.ExecuteNonQuery();
+            }
+
+            using (var asignarPerfil = new SqlCommand(
+                       "INSERT INTO UsuarioPerfil (IdUsuario, IdPerfil, AsignadoPor) " +
+                       "SELECT @IdUsuario, @IdPerfil, @usuarioActual " +
+                       "WHERE NOT EXISTS (SELECT 1 FROM UsuarioPerfil WHERE IdUsuario = @IdUsuario AND IdPerfil = @IdPerfil);",
+                       connection, transaction))
+            {
+                asignarPerfil.Parameters.AddWithValue("@IdUsuario", idUsuario);
+                asignarPerfil.Parameters.AddWithValue("@IdPerfil", idPerfil);
+                asignarPerfil.Parameters.AddWithValue("@usuarioActual", usuarioActual);
+                asignarPerfil.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                transaction.Rollback();
+            }
+            catch
+            {
+                // Ignorar errores de rollback
+            }
+
+            MessageBox.Show($"No se pudo asignar el perfil por defecto: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            throw new PerfilAsignacionException("Error al asignar el perfil por defecto", ex);
+        }
+    }
+
+    private sealed class PerfilAsignacionException : Exception
+    {
+        public PerfilAsignacionException(string message, Exception innerException)
+            : base(message, innerException)
+        {
         }
     }
 }
