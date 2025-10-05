@@ -16,8 +16,8 @@ public class SuperUsuarioForm : Form
     private readonly TextBox _txtNombreCompleto = new() { PlaceholderText = "Nombre completo" };
     private readonly TextBox _txtUsuario = new() { PlaceholderText = "Nombre de usuario" };
     private readonly TextBox _txtCorreo = new() { PlaceholderText = "Correo electrónico" };
-    private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña" };
-    private readonly TextBox _txtConfirmacion = new() { UseSystemPasswordChar = true, PlaceholderText = "Confirmar contraseña" };
+    private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña", MaxLength = 50 };
+    private readonly TextBox _txtConfirmacion = new() { UseSystemPasswordChar = true, PlaceholderText = "Confirmar contraseña", MaxLength = 50 };
     private readonly Button _btnCrear = new() { Text = "Crear super usuario" };
     private readonly Button _btnCancelar = new() { Text = "Cancelar", DialogResult = DialogResult.Cancel };
     private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(0, 8, 0, 0) };
@@ -185,6 +185,12 @@ public class SuperUsuarioForm : Form
             return;
         }
 
+        if (clave.Length > 50)
+        {
+            _lblMensaje.Text = "La contraseña no puede exceder 50 caracteres";
+            return;
+        }
+
         if (!string.Equals(clave, confirmacion, StringComparison.Ordinal))
         {
             _lblMensaje.Text = "Las contraseñas no coinciden";
@@ -206,9 +212,8 @@ public class SuperUsuarioForm : Form
 
             ValidarDuplicados(connection, transaction, usuario, correo);
 
-            var (hash, salt) = SeguridadUtil.CrearPasswordHash(clave);
             var idPerfilSuper = ObtenerOCrearPerfilSuper(connection, transaction);
-            var idUsuario = InsertarUsuario(connection, transaction, usuario, correo, hash, salt, nombreCompleto);
+            var idUsuario = InsertarUsuario(connection, transaction, usuario, correo, clave, nombreCompleto);
             var pantallas = AsegurarPantallasBase(connection, transaction, usuario);
             OtorgarPermisosTotales(connection, transaction, idPerfilSuper, pantallas.Values, usuario);
             AsignarPerfil(connection, transaction, idUsuario, idPerfilSuper, usuario);
@@ -295,16 +300,15 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);", connection, transaction);
         return Convert.ToInt32(insertar.ExecuteScalar());
     }
 
-    private static int InsertarUsuario(SqlConnection connection, SqlTransaction transaction, string usuario, string correo, byte[] hash, byte[] salt, string nombreCompleto)
+    private static int InsertarUsuario(SqlConnection connection, SqlTransaction transaction, string usuario, string correo, string clave, string nombreCompleto)
     {
-        using var insertar = new SqlCommand(@"INSERT INTO Usuario (NombreUsuario, Correo, ClaveHash, ClaveSalt, NombreCompleto, Activo)
-VALUES (@usuario, @correo, @hash, @salt, @nombre, 1);
+        using var insertar = new SqlCommand(@"INSERT INTO Usuario (NombreUsuario, Correo, Clave, NombreCompleto, Activo)
+VALUES (@usuario, @correo, @clave, @nombre, 1);
 SELECT CAST(SCOPE_IDENTITY() AS INT);", connection, transaction);
         insertar.Parameters.AddWithValue("@usuario", usuario);
         insertar.Parameters.AddWithValue("@correo", correo);
         insertar.Parameters.AddWithValue("@nombre", nombreCompleto);
-        insertar.Parameters.Add("@hash", SqlDbType.VarBinary, SeguridadUtil.TamanoHash).Value = hash;
-        insertar.Parameters.Add("@salt", SqlDbType.VarBinary, SeguridadUtil.TamanoSalt).Value = salt;
+        insertar.Parameters.AddWithValue("@clave", clave);
         return Convert.ToInt32(insertar.ExecuteScalar());
     }
 
