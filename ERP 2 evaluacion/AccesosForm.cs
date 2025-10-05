@@ -54,6 +54,7 @@ public class AccesosForm : Form
         _colNivel.ToolTipText = "Selecciona un nivel para aplicar automáticamente los permisos asociados.";
 
         ConfigurarGrid();
+        _grid.EditMode = DataGridViewEditMode.EditOnEnter;
         UiTheme.StyleDataGrid(_grid);
         UiTheme.StyleComboBox(_cmbPerfil);
         UiTheme.StylePrimaryButton(_btnGuardar);
@@ -117,18 +118,19 @@ public class AccesosForm : Form
 
     private void ConfigurarGrid()
     {
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Id", DataPropertyName = "IdPantalla", Visible = false });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Código", DataPropertyName = "Codigo", Width = 150, ToolTipText = "Identificador único de la pantalla." });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Pantalla", DataPropertyName = "NombrePantalla", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Padre", DataPropertyName = "NombrePadre", Width = 150, ToolTipText = "Módulo al que pertenece la pantalla." });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Id", DataPropertyName = "IdPantalla", Visible = false, ReadOnly = true });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Código", DataPropertyName = "Codigo", Width = 150, ToolTipText = "Identificador único de la pantalla.", ReadOnly = true });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Pantalla", DataPropertyName = "NombrePantalla", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, ReadOnly = true });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Padre", DataPropertyName = "NombrePadre", Width = 150, ToolTipText = "Módulo al que pertenece la pantalla.", ReadOnly = true });
+        _colNivel.ReadOnly = false;
         _grid.Columns.Add(_colNivel);
-        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Ver", DataPropertyName = "PuedeVer", Width = 70, ToolTipText = "Permite visualizar la pantalla." });
-        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Crear", DataPropertyName = "PuedeCrear", Width = 70, ToolTipText = "Autoriza la creación de nuevos registros." });
-        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Editar", DataPropertyName = "PuedeEditar", Width = 70, ToolTipText = "Permite modificar registros existentes." });
-        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Eliminar", DataPropertyName = "PuedeEliminar", Width = 80, ToolTipText = "Permite eliminar registros." });
-        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Exportar", DataPropertyName = "PuedeExportar", Width = 85, ToolTipText = "Permite exportar información." });
-        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Activo", DataPropertyName = "Activo", Width = 70, ToolTipText = "Indica si el permiso se encuentra vigente." });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "IdAcceso", DataPropertyName = "IdPerfilPantallaAcceso", Visible = false });
+        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Ver", DataPropertyName = "PuedeVer", Width = 70, ToolTipText = "Permite visualizar la pantalla.", ReadOnly = false });
+        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Crear", DataPropertyName = "PuedeCrear", Width = 70, ToolTipText = "Autoriza la creación de nuevos registros.", ReadOnly = false });
+        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Editar", DataPropertyName = "PuedeEditar", Width = 70, ToolTipText = "Permite modificar registros existentes.", ReadOnly = false });
+        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Eliminar", DataPropertyName = "PuedeEliminar", Width = 80, ToolTipText = "Permite eliminar registros.", ReadOnly = false });
+        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Exportar", DataPropertyName = "PuedeExportar", Width = 85, ToolTipText = "Permite exportar información.", ReadOnly = false });
+        _grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Activo", DataPropertyName = "Activo", Width = 70, ToolTipText = "Indica si el permiso se encuentra vigente.", ReadOnly = false });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "IdAcceso", DataPropertyName = "IdPerfilPantallaAcceso", Visible = false, ReadOnly = true });
     }
 
     private void CargarPerfiles()
@@ -177,6 +179,13 @@ ORDER BY ISNULL(p.IdPadre, 0), p.Orden, p.NombrePantalla", connection);
             if (!_tablaAccesos.Columns.Contains("NivelPermiso"))
             {
                 _tablaAccesos.Columns.Add("NivelPermiso", typeof(string));
+            }
+            foreach (var columnaEditable in new[] { "PuedeVer", "PuedeCrear", "PuedeEditar", "PuedeEliminar", "PuedeExportar", "Activo", "NivelPermiso", "IdPerfilPantallaAcceso" })
+            {
+                if (_tablaAccesos.Columns.Contains(columnaEditable))
+                {
+                    _tablaAccesos.Columns[columnaEditable].ReadOnly = false;
+                }
             }
             foreach (DataRow fila in _tablaAccesos.Rows)
             {

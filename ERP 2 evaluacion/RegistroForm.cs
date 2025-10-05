@@ -25,6 +25,20 @@ public class RegistroForm : Form
     private readonly TextBox _txtCorreo = new() { PlaceholderText = "Correo electrónico" };
     private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña", MaxLength = 50 };
     private readonly TextBox _txtConfirmacion = new() { UseSystemPasswordChar = true, PlaceholderText = "Confirmar contraseña", MaxLength = 50 };
+    private readonly CheckBox _chkActivo = new() { Text = "Usuario activo", Checked = true };
+    private readonly DateTimePicker _dtpUltimoIngreso = new()
+    {
+        Format = DateTimePickerFormat.Custom,
+        CustomFormat = "dd/MM/yyyy HH:mm",
+        ShowCheckBox = true,
+        Checked = false
+    };
+    private readonly DateTimePicker _dtpFechaCreacion = new()
+    {
+        Format = DateTimePickerFormat.Custom,
+        CustomFormat = "dd/MM/yyyy",
+        Value = DateTime.Today
+    };
     private readonly Button _btnRegistrar = new() { Text = "Registrar" };
     private readonly Button _btnCancelar = new() { Text = "Cancelar", DialogResult = DialogResult.Cancel };
     private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(0, 8, 0, 0) };
@@ -50,8 +64,16 @@ public class RegistroForm : Form
         UiTheme.StyleTextInput(_txtCorreo);
         UiTheme.StyleTextInput(_txtClave);
         UiTheme.StyleTextInput(_txtConfirmacion);
+        UiTheme.StyleCheckBox(_chkActivo);
         UiTheme.StylePrimaryButton(_btnRegistrar);
         UiTheme.StyleSecondaryButton(_btnCancelar);
+
+        _dtpUltimoIngreso.Margin = new Padding(0, 6, 0, 16);
+        _dtpUltimoIngreso.Dock = DockStyle.Fill;
+        _dtpUltimoIngreso.MinimumSize = new Size(280, 36);
+        _dtpFechaCreacion.Margin = new Padding(0, 6, 0, 16);
+        _dtpFechaCreacion.Dock = DockStyle.Fill;
+        _dtpFechaCreacion.MinimumSize = new Size(280, 36);
 
         _btnRegistrar.Click += BtnRegistrar_Click;
 
@@ -63,16 +85,10 @@ public class RegistroForm : Form
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
         };
 
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        for (int i = 0; i < 20; i++)
+        {
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        }
 
         layout.Controls.Add(_lblTitulo, 0, 0);
         layout.Controls.Add(_lblSubtitulo, 0, 1);
@@ -86,7 +102,12 @@ public class RegistroForm : Form
         layout.Controls.Add(_txtClave, 0, 9);
         layout.Controls.Add(CreateFieldLabel("Confirmar contraseña"), 0, 10);
         layout.Controls.Add(_txtConfirmacion, 0, 11);
-        layout.Controls.Add(_lblMensaje, 0, 12);
+        layout.Controls.Add(_chkActivo, 0, 12);
+        layout.Controls.Add(CreateFieldLabel("Último ingreso (opcional)"), 0, 13);
+        layout.Controls.Add(_dtpUltimoIngreso, 0, 14);
+        layout.Controls.Add(CreateFieldLabel("Fecha de creación"), 0, 15);
+        layout.Controls.Add(_dtpFechaCreacion, 0, 16);
+        layout.Controls.Add(_lblMensaje, 0, 17);
 
         var panelBotones = new FlowLayoutPanel
         {
@@ -99,7 +120,7 @@ public class RegistroForm : Form
         };
         panelBotones.Controls.Add(_btnRegistrar);
         panelBotones.Controls.Add(_btnCancelar);
-        layout.Controls.Add(panelBotones, 0, 13);
+        layout.Controls.Add(panelBotones, 0, 18);
 
         var card = UiTheme.CreateCardPanel();
         card.AutoSize = true;
@@ -146,6 +167,10 @@ public class RegistroForm : Form
         var correo = _txtCorreo.Text.Trim();
         var clave = _txtClave.Text;
         var confirmacion = _txtConfirmacion.Text;
+        var activo = _chkActivo.Checked;
+        var ultimoIngreso = _dtpUltimoIngreso.Checked ? _dtpUltimoIngreso.Value : (DateTime?)null;
+        var fechaCreacion = _dtpFechaCreacion.Value.Date;
+        var ahora = DateTime.Now;
 
         if (string.IsNullOrWhiteSpace(nombreCompleto) || string.IsNullOrWhiteSpace(usuario) ||
             string.IsNullOrWhiteSpace(correo) || string.IsNullOrWhiteSpace(clave) ||
@@ -179,18 +204,41 @@ public class RegistroForm : Form
             return;
         }
 
+        if (fechaCreacion.Date > ahora.Date)
+        {
+            _lblMensaje.Text = "La fecha de creación no puede ser futura";
+            return;
+        }
+
+        if (ultimoIngreso.HasValue && ultimoIngreso.Value > ahora)
+        {
+            _lblMensaje.Text = "El último ingreso no puede ser en el futuro";
+            return;
+        }
+
+        if (ultimoIngreso.HasValue && ultimoIngreso.Value < fechaCreacion)
+        {
+            _lblMensaje.Text = "El último ingreso no puede ser anterior a la fecha de creación";
+            return;
+        }
+
         try
         {
             using var connection = Db.GetConnection();
             connection.Open();
-            using var command = new SqlCommand(@"INSERT INTO Usuario (NombreUsuario, Correo, Clave, NombreCompleto, Activo)
-VALUES (@usuario, @correo, @clave, @nombre, 1);
+            using var command = new SqlCommand(@"INSERT INTO Usuario (NombreUsuario, Correo, Clave, NombreCompleto, Activo, UltimoIngreso, FechaCreacion)
+VALUES (@usuario, @correo, @clave, @nombre, @activo, @ultimoIngreso, @fechaCreacion);
 SELECT CAST(SCOPE_IDENTITY() AS INT);", connection);
 
             command.Parameters.AddWithValue("@usuario", usuario);
             command.Parameters.AddWithValue("@correo", correo);
             command.Parameters.AddWithValue("@nombre", nombreCompleto);
             command.Parameters.AddWithValue("@clave", clave);
+            command.Parameters.AddWithValue("@activo", activo);
+            var ultimoIngresoParam = command.Parameters.Add("@ultimoIngreso", SqlDbType.DateTime);
+            ultimoIngresoParam.Value = ultimoIngreso.HasValue ? ultimoIngreso.Value : DBNull.Value;
+            var fechaCreacionParam = command.Parameters.Add("@fechaCreacion", SqlDbType.Date);
+            fechaCreacionParam.Value = fechaCreacion;
 
             var id = command.ExecuteScalar();
             if (id == null)
