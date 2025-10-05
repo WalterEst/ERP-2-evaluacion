@@ -329,13 +329,17 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
             _arbolPantallas.Enabled = true;
 
             var lookup = _pantallasDisponibles
-                .GroupBy(p => p.IdPadre)
-                .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Orden).ThenBy(x => x.Nombre).ToList());
+                .Where(p => p.IdPadre.HasValue)
+                .GroupBy(p => p.IdPadre.Value)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(x => x.Orden).ThenBy(x => x.Nombre).ToList());
 
-            if (!lookup.TryGetValue(null, out var raices))
-            {
-                raices = new List<PantallaNodo>();
-            }
+            var raices = _pantallasDisponibles
+                .Where(p => !p.IdPadre.HasValue)
+                .OrderBy(x => x.Orden)
+                .ThenBy(x => x.Nombre)
+                .ToList();
 
             foreach (var pantalla in raices)
             {
@@ -389,7 +393,7 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
             _arbolPantallas.EndUpdate();
         }
 
-        private TreeNode? CrearNodoFiltrado(PantallaNodo pantalla, Dictionary<int?, List<PantallaNodo>> lookup, string? filtro)
+        private TreeNode? CrearNodoFiltrado(PantallaNodo pantalla, Dictionary<int, List<PantallaNodo>> lookup, string? filtro)
         {
             var hijos = lookup.TryGetValue(pantalla.Id, out var listaHijos) ? listaHijos : new List<PantallaNodo>();
             var nodosHijo = new List<TreeNode>();
