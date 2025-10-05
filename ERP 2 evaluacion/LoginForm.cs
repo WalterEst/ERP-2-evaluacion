@@ -16,7 +16,7 @@ public class LoginForm : Form
         Margin = new Padding(0, 0, 0, 12)
     };
     private readonly TextBox _txtUsuario = new() { PlaceholderText = "Usuario o correo" };
-    private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña" };
+    private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña", MaxLength = 50 };
     private readonly Button _btnIngresar = new() { Text = "Ingresar" };
     private readonly Button _btnRegistrarse = new() { Text = "Crear cuenta" };
     private readonly Button _btnSuperUsuario = new() { Text = "Crear super usuario" };
@@ -142,7 +142,7 @@ public class LoginForm : Form
         {
             using var connection = Db.GetConnection();
             connection.Open();
-            using var command = new SqlCommand(@"SELECT TOP 1 IdUsuario, NombreUsuario, Correo, ClaveHash, ClaveSalt, NombreCompleto, Activo 
+            using var command = new SqlCommand(@"SELECT TOP 1 IdUsuario, NombreUsuario, Correo, Clave, NombreCompleto, Activo
 FROM Usuario WHERE NombreUsuario = @usuario OR Correo = @usuario", connection);
             command.Parameters.AddWithValue("@usuario", usuario);
 
@@ -160,9 +160,8 @@ FROM Usuario WHERE NombreUsuario = @usuario OR Correo = @usuario", connection);
                 return;
             }
 
-            var salt = (byte[])reader["ClaveSalt"];
-            var hash = (byte[])reader["ClaveHash"];
-            if (!SeguridadUtil.VerificarPassword(clave, salt, hash))
+            var claveAlmacenada = reader.GetString(reader.GetOrdinal("Clave"));
+            if (!string.Equals(claveAlmacenada, clave, StringComparison.Ordinal))
             {
                 _lblMensaje.Text = "Contraseña incorrecta";
                 return;

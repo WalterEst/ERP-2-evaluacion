@@ -13,6 +13,8 @@ public class UsuariosForm : Form
     private readonly TextBox _txtNombreUsuario = new();
     private readonly TextBox _txtCorreo = new();
     private readonly TextBox _txtNombreCompleto = new();
+    private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña", MaxLength = 50 };
+    private readonly TextBox _txtConfirmarClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Confirmar contraseña", MaxLength = 50 };
     private readonly CheckBox _chkActivo = new() { Text = "Activo", Checked = true };
     private readonly Button _btnNuevo = new() { Text = "Nuevo" };
     private readonly Button _btnGuardar = new() { Text = "Guardar" };
@@ -38,6 +40,8 @@ public class UsuariosForm : Form
         UiTheme.StyleTextInput(_txtNombreUsuario);
         UiTheme.StyleTextInput(_txtCorreo);
         UiTheme.StyleTextInput(_txtNombreCompleto);
+        UiTheme.StyleTextInput(_txtClave);
+        UiTheme.StyleTextInput(_txtConfirmarClave);
         UiTheme.StyleCheckBox(_chkActivo);
         UiTheme.StyleSecondaryButton(_btnNuevo);
         UiTheme.StylePrimaryButton(_btnGuardar);
@@ -141,33 +145,78 @@ public class UsuariosForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 4,
-            RowCount = 5,
             Padding = new Padding(0, 0, 0, 16)
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        layout.Controls.Add(new Label { Text = "Usuario", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 0, 0, 6) }, 0, 0);
-        layout.Controls.Add(_txtNombreUsuario, 0, 1);
+        int row = 0;
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        var lblAcceso = UiTheme.CreateSectionLabel("Datos de acceso");
+        lblAcceso.Margin = new Padding(0, 0, 0, 12);
+        layout.Controls.Add(lblAcceso, 0, row);
+        layout.SetColumnSpan(lblAcceso, 4);
+        row++;
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(new Label { Text = "Usuario", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 0, 0, 6) }, 0, row);
+        layout.Controls.Add(new Label { Text = "Correo", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(16, 0, 0, 6) }, 2, row);
+        row++;
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(_txtNombreUsuario, 0, row);
         layout.SetColumnSpan(_txtNombreUsuario, 2);
-
-        layout.Controls.Add(new Label { Text = "Correo", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(16, 0, 0, 6) }, 2, 0);
-        layout.Controls.Add(_txtCorreo, 2, 1);
+        layout.Controls.Add(_txtCorreo, 2, row);
         layout.SetColumnSpan(_txtCorreo, 2);
+        row++;
 
-        layout.Controls.Add(new Label { Text = "Nombre completo", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 12, 0, 6) }, 0, 2);
-        layout.Controls.Add(_txtNombreCompleto, 0, 3);
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(new Label { Text = "Contraseña", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 12, 0, 6) }, 0, row);
+        layout.Controls.Add(new Label { Text = "Confirmar contraseña", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(16, 12, 0, 6) }, 2, row);
+        row++;
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(_txtClave, 0, row);
+        layout.SetColumnSpan(_txtClave, 2);
+        layout.Controls.Add(_txtConfirmarClave, 2, row);
+        layout.SetColumnSpan(_txtConfirmarClave, 2);
+        row++;
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        var lblNota = new Label
+        {
+            Text = "Deja la contraseña en blanco para mantenerla al editar un usuario existente.",
+            ForeColor = UiTheme.MutedTextColor,
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 12)
+        };
+        layout.Controls.Add(lblNota, 0, row);
+        layout.SetColumnSpan(lblNota, 4);
+        row++;
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        var lblInfo = UiTheme.CreateSectionLabel("Información personal");
+        lblInfo.Margin = new Padding(0, 8, 0, 12);
+        layout.Controls.Add(lblInfo, 0, row);
+        layout.SetColumnSpan(lblInfo, 4);
+        row++;
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        var lblNombreCompleto = new Label { Text = "Nombre completo", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 0, 0, 6) };
+        layout.Controls.Add(lblNombreCompleto, 0, row);
+        layout.SetColumnSpan(lblNombreCompleto, 4);
+        row++;
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(_txtNombreCompleto, 0, row);
         layout.SetColumnSpan(_txtNombreCompleto, 4);
+        row++;
 
-        layout.Controls.Add(_chkActivo, 0, 4);
-        layout.Controls.Add(_lblMensaje, 1, 4);
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(_chkActivo, 0, row);
+        layout.Controls.Add(_lblMensaje, 1, row);
         layout.SetColumnSpan(_lblMensaje, 3);
 
         var panelBotones = new FlowLayoutPanel
@@ -217,6 +266,8 @@ public class UsuariosForm : Form
             _txtCorreo.Text = fila["Correo"].ToString();
             _txtNombreCompleto.Text = fila["NombreCompleto"].ToString();
             _chkActivo.Checked = fila.Row.Field<bool>("Activo");
+            _txtClave.Text = string.Empty;
+            _txtConfirmarClave.Text = string.Empty;
         }
     }
 
@@ -226,6 +277,8 @@ public class UsuariosForm : Form
         _txtNombreUsuario.Text = string.Empty;
         _txtCorreo.Text = string.Empty;
         _txtNombreCompleto.Text = string.Empty;
+        _txtClave.Text = string.Empty;
+        _txtConfirmarClave.Text = string.Empty;
         _chkActivo.Checked = true;
         _lblMensaje.Text = string.Empty;
         _grid.ClearSelection();
@@ -238,6 +291,9 @@ public class UsuariosForm : Form
         var correo = _txtCorreo.Text.Trim();
         var nombreCompleto = _txtNombreCompleto.Text.Trim();
         var activo = _chkActivo.Checked;
+        var clave = _txtClave.Text;
+        var confirmarClave = _txtConfirmarClave.Text;
+        var esNuevo = !_idSeleccionado.HasValue;
 
         if (string.IsNullOrWhiteSpace(nombreUsuario) || string.IsNullOrWhiteSpace(correo) || string.IsNullOrWhiteSpace(nombreCompleto))
         {
@@ -249,6 +305,33 @@ public class UsuariosForm : Form
         {
             _lblMensaje.Text = "Correo inválido";
             return;
+        }
+
+        if (esNuevo && string.IsNullOrWhiteSpace(clave))
+        {
+            _lblMensaje.Text = "Defina una contraseña para el nuevo usuario";
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(clave) || !string.IsNullOrEmpty(confirmarClave))
+        {
+            if (clave.Length < 8)
+            {
+                _lblMensaje.Text = "La contraseña debe tener al menos 8 caracteres";
+                return;
+            }
+
+            if (clave.Length > 50)
+            {
+                _lblMensaje.Text = "La contraseña no puede exceder 50 caracteres";
+                return;
+            }
+
+            if (!string.Equals(clave, confirmarClave, StringComparison.Ordinal))
+            {
+                _lblMensaje.Text = "Las contraseñas no coinciden";
+                return;
+            }
         }
 
         try
@@ -277,29 +360,40 @@ public class UsuariosForm : Form
 
             if (_idSeleccionado.HasValue)
             {
-                using var actualizar = new SqlCommand("UPDATE Usuario SET NombreUsuario = @nombre, Correo = @correo, NombreCompleto = @completo, Activo = @activo WHERE IdUsuario = @id", connection);
+                var sql = "UPDATE Usuario SET NombreUsuario = @nombre, Correo = @correo, NombreCompleto = @completo, Activo = @activo";
+                if (!string.IsNullOrEmpty(clave))
+                {
+                    sql += ", Clave = @clave";
+                }
+                sql += " WHERE IdUsuario = @id";
+
+                using var actualizar = new SqlCommand(sql, connection);
                 actualizar.Parameters.AddWithValue("@nombre", nombreUsuario);
                 actualizar.Parameters.AddWithValue("@correo", correo);
                 actualizar.Parameters.AddWithValue("@completo", nombreCompleto);
                 actualizar.Parameters.AddWithValue("@activo", activo);
                 actualizar.Parameters.AddWithValue("@id", _idSeleccionado.Value);
+                if (!string.IsNullOrEmpty(clave))
+                {
+                    actualizar.Parameters.AddWithValue("@clave", clave);
+                }
                 actualizar.ExecuteNonQuery();
-                MessageBox.Show("Usuario actualizado", "Usuarios", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(!string.IsNullOrEmpty(clave)
+                        ? "Usuario actualizado y contraseña restablecida"
+                        : "Usuario actualizado",
+                    "Usuarios", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
-                var contrasena = SeguridadUtil.GenerarPasswordTemporal();
-                var (hash, salt) = SeguridadUtil.CrearPasswordHash(contrasena);
-                using var insertar = new SqlCommand(@"INSERT INTO Usuario(NombreUsuario, Correo, ClaveHash, ClaveSalt, NombreCompleto, Activo)
-VALUES(@nombre, @correo, @hash, @salt, @completo, @activo)", connection);
+                using var insertar = new SqlCommand(@"INSERT INTO Usuario(NombreUsuario, Correo, Clave, NombreCompleto, Activo)
+VALUES(@nombre, @correo, @clave, @completo, @activo)", connection);
                 insertar.Parameters.AddWithValue("@nombre", nombreUsuario);
                 insertar.Parameters.AddWithValue("@correo", correo);
-                insertar.Parameters.Add("@hash", SqlDbType.VarBinary, SeguridadUtil.TamanoHash).Value = hash;
-                insertar.Parameters.Add("@salt", SqlDbType.VarBinary, SeguridadUtil.TamanoSalt).Value = salt;
                 insertar.Parameters.AddWithValue("@completo", nombreCompleto);
                 insertar.Parameters.AddWithValue("@activo", activo);
+                insertar.Parameters.AddWithValue("@clave", clave);
                 insertar.ExecuteNonQuery();
-                MessageBox.Show($"Usuario creado. Contraseña temporal: {contrasena}", "Usuarios", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Usuario creado correctamente", "Usuarios", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
         catch (Exception ex)
@@ -352,15 +446,13 @@ VALUES(@nombre, @correo, @hash, @salt, @completo, @activo)", connection);
         }
 
         var nuevaContrasena = SeguridadUtil.GenerarPasswordTemporal();
-        var (hash, salt) = SeguridadUtil.CrearPasswordHash(nuevaContrasena);
 
         try
         {
             using var connection = Db.GetConnection();
             connection.Open();
-            using var command = new SqlCommand("UPDATE Usuario SET ClaveHash = @hash, ClaveSalt = @salt WHERE IdUsuario = @id", connection);
-            command.Parameters.Add("@hash", SqlDbType.VarBinary, SeguridadUtil.TamanoHash).Value = hash;
-            command.Parameters.Add("@salt", SqlDbType.VarBinary, SeguridadUtil.TamanoSalt).Value = salt;
+            using var command = new SqlCommand("UPDATE Usuario SET Clave = @clave WHERE IdUsuario = @id", connection);
+            command.Parameters.AddWithValue("@clave", nuevaContrasena);
             command.Parameters.AddWithValue("@id", _idSeleccionado.Value);
             command.ExecuteNonQuery();
         }

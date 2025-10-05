@@ -23,8 +23,8 @@ public class RegistroForm : Form
     private readonly TextBox _txtNombreCompleto = new() { PlaceholderText = "Nombre completo" };
     private readonly TextBox _txtUsuario = new() { PlaceholderText = "Nombre de usuario" };
     private readonly TextBox _txtCorreo = new() { PlaceholderText = "Correo electrónico" };
-    private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña" };
-    private readonly TextBox _txtConfirmacion = new() { UseSystemPasswordChar = true, PlaceholderText = "Confirmar contraseña" };
+    private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña", MaxLength = 50 };
+    private readonly TextBox _txtConfirmacion = new() { UseSystemPasswordChar = true, PlaceholderText = "Confirmar contraseña", MaxLength = 50 };
     private readonly Button _btnRegistrar = new() { Text = "Registrar" };
     private readonly Button _btnCancelar = new() { Text = "Cancelar", DialogResult = DialogResult.Cancel };
     private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(0, 8, 0, 0) };
@@ -167,6 +167,12 @@ public class RegistroForm : Form
             return;
         }
 
+        if (clave.Length > 50)
+        {
+            _lblMensaje.Text = "La contraseña no puede exceder 50 caracteres";
+            return;
+        }
+
         if (!string.Equals(clave, confirmacion, StringComparison.Ordinal))
         {
             _lblMensaje.Text = "Las contraseñas no coinciden";
@@ -175,19 +181,16 @@ public class RegistroForm : Form
 
         try
         {
-            var (hash, salt) = SeguridadUtil.CrearPasswordHash(clave);
-
             using var connection = Db.GetConnection();
             connection.Open();
-            using var command = new SqlCommand(@"INSERT INTO Usuario (NombreUsuario, Correo, ClaveHash, ClaveSalt, NombreCompleto, Activo)
-VALUES (@usuario, @correo, @hash, @salt, @nombre, 1);
+            using var command = new SqlCommand(@"INSERT INTO Usuario (NombreUsuario, Correo, Clave, NombreCompleto, Activo)
+VALUES (@usuario, @correo, @clave, @nombre, 1);
 SELECT CAST(SCOPE_IDENTITY() AS INT);", connection);
 
             command.Parameters.AddWithValue("@usuario", usuario);
             command.Parameters.AddWithValue("@correo", correo);
             command.Parameters.AddWithValue("@nombre", nombreCompleto);
-            command.Parameters.Add("@hash", SqlDbType.VarBinary, SeguridadUtil.TamanoHash).Value = hash;
-            command.Parameters.Add("@salt", SqlDbType.VarBinary, SeguridadUtil.TamanoSalt).Value = salt;
+            command.Parameters.AddWithValue("@clave", clave);
 
             var id = command.ExecuteScalar();
             if (id == null)
