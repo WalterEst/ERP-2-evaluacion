@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using System;
 using System.Data;
 using System.Drawing;
 using System.Windows.Forms;
@@ -17,10 +18,14 @@ public class LoginForm : Form
     };
     private readonly TextBox _txtUsuario = new() { PlaceholderText = "Usuario o correo" };
     private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña", MaxLength = 50 };
+    private readonly CheckBox _chkMostrarClave = new() { Text = "Mostrar contraseña" };
     private readonly Button _btnIngresar = new() { Text = "Ingresar" };
     private readonly Button _btnRegistrarse = new() { Text = "Crear cuenta" };
     private readonly Button _btnSuperUsuario = new() { Text = "Crear super usuario" };
     private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(0, 8, 0, 0) };
+
+    private string? _ultimoUsuarioConsultado;
+    private bool? _ultimoUsuarioPrivilegiado;
 
     public LoginForm()
     {
@@ -37,6 +42,7 @@ public class LoginForm : Form
 
         UiTheme.StyleTextInput(_txtUsuario);
         UiTheme.StyleTextInput(_txtClave);
+        UiTheme.StyleCheckBox(_chkMostrarClave);
         UiTheme.StylePrimaryButton(_btnIngresar);
         UiTheme.StyleSecondaryButton(_btnRegistrarse);
         UiTheme.StyleSecondaryButton(_btnSuperUsuario);
@@ -46,6 +52,8 @@ public class LoginForm : Form
         _btnRegistrarse.Click += BtnRegistrarse_Click;
         _btnSuperUsuario.Click += BtnSuperUsuario_Click;
         Load += LoginForm_Load;
+        _chkMostrarClave.CheckedChanged += (_, _) => AlternarVisibilidadClave();
+        _txtUsuario.TextChanged += (_, _) => ReiniciarVerificacionPrivilegios();
 
         var layout = new TableLayoutPanel
         {
@@ -69,7 +77,10 @@ public class LoginForm : Form
         layout.Controls.Add(_txtUsuario, 0, 3);
         layout.Controls.Add(new Label { Text = "Contraseña", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 6, 0, 6) }, 0, 4);
         layout.Controls.Add(_txtClave, 0, 5);
-        layout.Controls.Add(_lblMensaje, 0, 6);
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(_chkMostrarClave, 0, 6);
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(_lblMensaje, 0, 7);
 
         var panelBotones = new FlowLayoutPanel
         {
@@ -83,7 +94,8 @@ public class LoginForm : Form
         panelBotones.Controls.Add(_btnIngresar);
         panelBotones.Controls.Add(_btnRegistrarse);
         panelBotones.Controls.Add(_btnSuperUsuario);
-        layout.Controls.Add(panelBotones, 0, 7);
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(panelBotones, 0, 8);
 
         var card = UiTheme.CreateCardPanel();
         card.AutoSize = true;
@@ -205,6 +217,72 @@ FROM Usuario WHERE NombreUsuario = @usuario OR Correo = @usuario", connection);
             _btnSuperUsuario.Visible = false;
             _lblMensaje.ForeColor = UiTheme.AccentColor;
             _lblMensaje.Text = "Super usuario creado. Inicia sesión con esas credenciales.";
+        }
+    }
+
+    private void AlternarVisibilidadClave()
+    {
+        if (!_chkMostrarClave.Checked)
+        {
+            _txtClave.UseSystemPasswordChar = true;
+            return;
+        }
+
+        var identificador = _txtUsuario.Text.Trim();
+
+        if (string.IsNullOrWhiteSpace(identificador))
+        {
+            _chkMostrarClave.Checked = false;
+            MessageBox.Show("Ingresa el usuario o correo antes de mostrar la contraseña.",
+                "Mostrar contraseña", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        try
+        {
+            bool esPrivilegiado;
+            if (_ultimoUsuarioPrivilegiado.HasValue &&
+                string.Equals(_ultimoUsuarioConsultado, identificador, StringComparison.OrdinalIgnoreCase))
+            {
+                esPrivilegiado = _ultimoUsuarioPrivilegiado.Value;
+            }
+            else
+            {
+                esPrivilegiado = SeguridadUtil.EsUsuarioPrivilegiadoPorIdentificador(identificador);
+                _ultimoUsuarioConsultado = identificador;
+                _ultimoUsuarioPrivilegiado = esPrivilegiado;
+            }
+
+            if (!esPrivilegiado)
+            {
+                _chkMostrarClave.Checked = false;
+                MessageBox.Show("Solo los usuarios privilegiados pueden mostrar la contraseña.",
+                    "Acceso restringido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _chkMostrarClave.Checked = false;
+            MessageBox.Show($"No se pudo validar el nivel de acceso: {ex.Message}",
+                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        _txtClave.UseSystemPasswordChar = false;
+    }
+
+    private void ReiniciarVerificacionPrivilegios()
+    {
+        _ultimoUsuarioConsultado = null;
+        _ultimoUsuarioPrivilegiado = null;
+        if (_chkMostrarClave.Checked)
+        {
+            _chkMostrarClave.Checked = false;
+        }
+        else
+        {
+            _txtClave.UseSystemPasswordChar = true;
         }
     }
 

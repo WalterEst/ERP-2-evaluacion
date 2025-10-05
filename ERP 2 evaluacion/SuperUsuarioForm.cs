@@ -18,6 +18,7 @@ public class SuperUsuarioForm : Form
     private readonly TextBox _txtCorreo = new() { PlaceholderText = "Correo electrónico" };
     private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña", MaxLength = 50 };
     private readonly TextBox _txtConfirmacion = new() { UseSystemPasswordChar = true, PlaceholderText = "Confirmar contraseña", MaxLength = 50 };
+    private readonly CheckBox _chkMostrarClave = new() { Text = "Mostrar contraseñas" };
     private readonly Button _btnCrear = new() { Text = "Crear super usuario" };
     private readonly Button _btnCancelar = new() { Text = "Cancelar", DialogResult = DialogResult.Cancel };
     private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(0, 8, 0, 0) };
@@ -50,10 +51,13 @@ public class SuperUsuarioForm : Form
         UiTheme.StyleTextInput(_txtCorreo);
         UiTheme.StyleTextInput(_txtClave);
         UiTheme.StyleTextInput(_txtConfirmacion);
+        UiTheme.StyleCheckBox(_chkMostrarClave);
         UiTheme.StylePrimaryButton(_btnCrear);
         UiTheme.StyleSecondaryButton(_btnCancelar);
 
         _btnCrear.Click += (_, _) => CrearSuperUsuario();
+        _chkMostrarClave.CheckedChanged += (_, _) => AlternarVisibilidadClaves();
+        AlternarVisibilidadClaves();
 
         var titulo = UiTheme.CreateTitleLabel("Super usuario");
         var subtitulo = new Label
@@ -103,7 +107,10 @@ public class SuperUsuarioForm : Form
         layout.Controls.Add(_txtConfirmacion, 0, 11);
 
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.Controls.Add(_lblMensaje, 0, 12);
+        layout.Controls.Add(_chkMostrarClave, 0, 12);
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(_lblMensaje, 0, 13);
 
         var panelBotones = new FlowLayoutPanel
         {
@@ -117,7 +124,7 @@ public class SuperUsuarioForm : Form
         panelBotones.Controls.Add(_btnCrear);
         panelBotones.Controls.Add(_btnCancelar);
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.Controls.Add(panelBotones, 0, 13);
+        layout.Controls.Add(panelBotones, 0, 14);
 
         var card = UiTheme.CreateCardPanel();
         card.AutoSize = true;
@@ -249,6 +256,13 @@ public class SuperUsuarioForm : Form
 
             MessageBox.Show($"No se pudo crear el super usuario: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+    }
+
+    private void AlternarVisibilidadClaves()
+    {
+        var mostrar = _chkMostrarClave.Checked;
+        _txtClave.UseSystemPasswordChar = !mostrar;
+        _txtConfirmacion.UseSystemPasswordChar = !mostrar;
     }
 
     private static bool ExisteSuperUsuario(SqlConnection connection, SqlTransaction transaction)
