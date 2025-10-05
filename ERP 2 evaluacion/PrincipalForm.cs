@@ -13,6 +13,7 @@ namespace ERP_2_evaluacion
     {
         private readonly int _idUsuario;
         private readonly string _nombreUsuario;
+        private readonly bool _usuarioPrivilegiado;
 
         private readonly TreeView _arbolPantallas = new() { Dock = DockStyle.Fill };
         private readonly Label _lblBienvenida = new() { AutoSize = true };
@@ -40,6 +41,17 @@ namespace ERP_2_evaluacion
         {
             _idUsuario = idUsuario;
             _nombreUsuario = nombreUsuario;
+
+            try
+            {
+                _usuarioPrivilegiado = SeguridadUtil.EsUsuarioPrivilegiadoPorId(idUsuario);
+            }
+            catch (Exception ex)
+            {
+                _usuarioPrivilegiado = false;
+                MessageBox.Show($"No se pudieron validar los privilegios del usuario: {ex.Message}",
+                    "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
 
             Text = "Principal";
             WindowState = FormWindowState.Maximized;
@@ -498,7 +510,7 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
         {
             Form? formulario = codigoPantalla switch
             {
-                "USUARIOS" => new UsuariosForm(),
+                "USUARIOS" => new UsuariosForm(_usuarioPrivilegiado),
                 "PERFILES" => new PerfilesForm(),
                 "ACCESOS" => new AccesosForm(),
                 _ => null

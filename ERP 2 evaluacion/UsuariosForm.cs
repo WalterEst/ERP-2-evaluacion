@@ -12,9 +12,10 @@ public class UsuariosForm : Form
     private readonly DataGridView _grid = new() { Dock = DockStyle.Fill, ReadOnly = true, SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false, AutoGenerateColumns = false };
     private readonly TextBox _txtNombreUsuario = new();
     private readonly TextBox _txtCorreo = new();
-    private readonly TextBox _txtNombreCompleto = new();
+    private readonly TextBox _txtNombreCompleto = new() { PlaceholderText = "Nombre completo" };
     private readonly TextBox _txtClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Contraseña", MaxLength = 50 };
     private readonly TextBox _txtConfirmarClave = new() { UseSystemPasswordChar = true, PlaceholderText = "Confirmar contraseña", MaxLength = 50 };
+    private readonly CheckBox _chkMostrarContrasenas = new() { Text = "Mostrar contraseñas" };
     private readonly CheckBox _chkActivo = new() { Text = "Activo", Checked = true };
     private readonly Button _btnNuevo = new() { Text = "Nuevo" };
     private readonly Button _btnGuardar = new() { Text = "Guardar" };
@@ -22,15 +23,18 @@ public class UsuariosForm : Form
     private readonly Button _btnReiniciar = new() { Text = "Reiniciar contraseña" };
     private readonly Label _lblMensaje = new() { AutoSize = true, ForeColor = UiTheme.DangerColor, Margin = new Padding(8, 0, 0, 0) };
     private readonly SplitContainer _splitContainer;
+    private readonly bool _permitirMostrarContrasenas;
 
     private int? _idSeleccionado;
 
-    public UsuariosForm()
+    public UsuariosForm(bool permitirMostrarContrasenas = false)
     {
         Text = "Usuarios";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1280, 840);
         MinimumSize = new Size(1120, 720);
+
+        _permitirMostrarContrasenas = permitirMostrarContrasenas;
 
         UiTheme.ApplyMinimalStyle(this);
 
@@ -42,6 +46,7 @@ public class UsuariosForm : Form
         UiTheme.StyleTextInput(_txtNombreCompleto);
         UiTheme.StyleTextInput(_txtClave);
         UiTheme.StyleTextInput(_txtConfirmarClave);
+        UiTheme.StyleCheckBox(_chkMostrarContrasenas);
         UiTheme.StyleCheckBox(_chkActivo);
         UiTheme.StyleSecondaryButton(_btnNuevo);
         UiTheme.StylePrimaryButton(_btnGuardar);
@@ -49,6 +54,9 @@ public class UsuariosForm : Form
         UiTheme.StyleSecondaryButton(_btnReiniciar);
         _btnGuardar.Margin = new Padding(0, 0, 0, 0);
         _btnReiniciar.Margin = new Padding(0, 0, 0, 0);
+
+        _chkMostrarContrasenas.Visible = _permitirMostrarContrasenas;
+        _chkMostrarContrasenas.Enabled = _permitirMostrarContrasenas;
 
         var panelEdicion = CrearPanelEdicion();
 
@@ -79,6 +87,9 @@ public class UsuariosForm : Form
         _btnGuardar.Click += (_, _) => GuardarUsuario();
         _btnEliminar.Click += (_, _) => EliminarUsuario();
         _btnReiniciar.Click += (_, _) => ReiniciarContrasena();
+        _chkMostrarContrasenas.CheckedChanged += (_, _) => ActualizarVisibilidadContrasenas();
+
+        ActualizarVisibilidadContrasenas();
     }
 
     protected override void OnShown(EventArgs e)
@@ -185,6 +196,11 @@ public class UsuariosForm : Form
         row++;
 
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(_chkMostrarContrasenas, 0, row);
+        layout.SetColumnSpan(_chkMostrarContrasenas, 4);
+        row++;
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         var lblNota = new Label
         {
             Text = "Deja la contraseña en blanco para mantenerla al editar un usuario existente.",
@@ -282,6 +298,8 @@ public class UsuariosForm : Form
         _chkActivo.Checked = true;
         _lblMensaje.Text = string.Empty;
         _grid.ClearSelection();
+        _chkMostrarContrasenas.Checked = false;
+        ActualizarVisibilidadContrasenas();
     }
 
     private void GuardarUsuario()
@@ -297,7 +315,7 @@ public class UsuariosForm : Form
 
         if (string.IsNullOrWhiteSpace(nombreUsuario) || string.IsNullOrWhiteSpace(correo) || string.IsNullOrWhiteSpace(nombreCompleto))
         {
-            _lblMensaje.Text = "Complete los campos requeridos";
+            _lblMensaje.Text = "Complete los campos requeridos (usuario, correo y nombre completo)";
             return;
         }
 
@@ -463,5 +481,12 @@ VALUES(@nombre, @correo, @clave, @completo, @activo)", connection);
         }
 
         MessageBox.Show($"Contraseña temporal: {nuevaContrasena}", "Usuarios", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private void ActualizarVisibilidadContrasenas()
+    {
+        var mostrar = _permitirMostrarContrasenas && _chkMostrarContrasenas.Checked;
+        _txtClave.UseSystemPasswordChar = !mostrar;
+        _txtConfirmarClave.UseSystemPasswordChar = !mostrar;
     }
 }
