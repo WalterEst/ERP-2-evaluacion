@@ -22,6 +22,10 @@ CREATE TABLE dbo.Usuario
 );
 GO
 
+ALTER TABLE dbo.Usuario
+ADD CONSTRAINT CK_Usuario_ClaveLength CHECK (LEN(Clave) >= 8);
+GO
+
 CREATE TABLE dbo.Perfil
 (
     IdPerfil INT IDENTITY(1,1) PRIMARY KEY,
