@@ -524,7 +524,7 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
         {
             Form? formulario = codigoPantalla switch
             {
-                "USUARIOS" => new UsuariosForm(_usuarioPrivilegiado),
+                "USUARIOS" => new UsuariosForm(_usuarioPrivilegiado, _nombreUsuario),
                 "PERFILES" => new PerfilesForm(),
                 "ACCESOS" => new AccesosForm(),
                 "PRODUCTOS" => new ProductosForm(),
