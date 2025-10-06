@@ -9,8 +9,6 @@ internal static class ResponsiveFormHelper
 {
     private const int DefaultDesignWidth = 1280;
     private const int DefaultDesignHeight = 840;
-    private const int MinimumWidth = 960;
-    private const int MinimumHeight = 640;
 
     public static void Attach(Form form)
     {
@@ -76,27 +74,17 @@ internal static class ResponsiveFormHelper
         var screen = Screen.FromControl(form);
         var working = screen.WorkingArea;
 
-        var horizontalMargin = Math.Max(64, (int)Math.Round(working.Width * 0.04));
-        var verticalMargin = Math.Max(64, (int)Math.Round(working.Height * 0.06));
-        var availableWidth = Math.Max(working.Width - horizontalMargin, MinimumWidth);
-        var availableHeight = Math.Max(working.Height - verticalMargin, MinimumHeight);
+        var horizontalMargin = Math.Max(48, (int)Math.Round(working.Width * 0.04));
+        var verticalMargin = Math.Max(48, (int)Math.Round(working.Height * 0.06));
+        var availableWidth = Math.Max(working.Width - horizontalMargin, 0);
+        var availableHeight = Math.Max(working.Height - verticalMargin, 0);
 
-        float scale = Math.Min(availableWidth / (float)designSize.Width, availableHeight / (float)designSize.Height);
-        if (float.IsNaN(scale) || scale <= 0)
-        {
-            scale = 1f;
-        }
-
-        scale = Math.Clamp(scale, 0.85f, 1.15f);
-
-        var targetWidth = (int)Math.Round(designSize.Width * scale);
-        var targetHeight = (int)Math.Round(designSize.Height * scale);
-
-        targetWidth = Math.Clamp(targetWidth, MinimumWidth, availableWidth);
-        targetHeight = Math.Clamp(targetHeight, MinimumHeight, availableHeight);
-
-        form.MaximumSize = new Size(availableWidth, availableHeight);
-        form.MinimumSize = new Size(targetWidth, targetHeight);
+        var targetWidth = availableWidth > 0
+            ? Math.Min(designSize.Width, availableWidth)
+            : designSize.Width;
+        var targetHeight = availableHeight > 0
+            ? Math.Min(designSize.Height, availableHeight)
+            : designSize.Height;
 
         if (form.WindowState != FormWindowState.Maximized)
         {
@@ -104,8 +92,17 @@ internal static class ResponsiveFormHelper
             CenterForm(form, working);
         }
 
-        var padding = (int)Math.Round(Math.Clamp(working.Width * 0.015, 24, 48));
+        form.MaximumSize = Size.Empty;
+        form.MinimumSize = Size.Empty;
+
+        var padding = (int)Math.Round(Math.Clamp(working.Width * 0.015, 20, 48));
         form.Padding = new Padding(padding);
+
+        form.AutoScroll = true;
+        var preferred = form.PreferredSize;
+        var scrollWidth = Math.Max(Math.Max(designSize.Width, preferred.Width), form.AutoScrollMinSize.Width);
+        var scrollHeight = Math.Max(Math.Max(designSize.Height, preferred.Height), form.AutoScrollMinSize.Height);
+        form.AutoScrollMinSize = new Size(scrollWidth, scrollHeight);
     }
 
     private static void CenterForm(Form form, Rectangle working)
@@ -123,13 +120,6 @@ internal static class ResponsiveFormHelper
         }
 
         var working = Screen.FromControl(form).WorkingArea;
-
-        var width = Math.Min(form.Width, working.Width);
-        var height = Math.Min(form.Height, working.Height);
-        if (width != form.Width || height != form.Height)
-        {
-            form.Size = new Size(width, height);
-        }
 
         var x = Math.Min(Math.Max(form.Left, working.Left), working.Right - form.Width);
         var y = Math.Min(Math.Max(form.Top, working.Top), working.Bottom - form.Height);

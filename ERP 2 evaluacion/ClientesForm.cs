@@ -39,7 +39,6 @@ public class ClientesForm : Form
         Text = "Clientes";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1200, 780);
-        MinimumSize = new Size(1024, 680);
 
         UiTheme.ApplyMinimalStyle(this);
 

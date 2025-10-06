@@ -32,7 +32,6 @@ public class UsuariosForm : Form
         Text = "Usuarios";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1280, 840);
-        MinimumSize = new Size(1120, 720);
 
         _permitirMostrarContrasenas = permitirMostrarContrasenas;
 

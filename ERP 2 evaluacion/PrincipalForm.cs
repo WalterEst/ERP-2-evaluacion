@@ -196,7 +196,6 @@ namespace ERP_2_evaluacion
 
             var summaryCard = UiTheme.CreateCardPanel();
             summaryCard.Padding = new Padding(32, 28, 32, 28);
-            summaryCard.MinimumSize = new Size(280, 0);
 
             var summaryLayout = new TableLayoutPanel
             {

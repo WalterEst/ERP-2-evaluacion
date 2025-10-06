@@ -33,7 +33,6 @@ public class AccesosForm : Form
         Text = "Accesos";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1280, 840);
-        MinimumSize = new Size(1120, 720);
 
         UiTheme.ApplyMinimalStyle(this);
 

@@ -73,7 +73,6 @@ public class VentasForm : Form
         Text = "Ventas";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1320, 880);
-        MinimumSize = new Size(1180, 760);
 
         UiTheme.ApplyMinimalStyle(this);
 
@@ -155,8 +154,8 @@ public class VentasForm : Form
         control.BorderStyle = BorderStyle.FixedSingle;
         control.Font = UiTheme.BaseFont;
         control.Margin = new Padding(0, 6, 0, 16);
-        control.MinimumSize = new Size(160, 36);
-        control.MaximumSize = new Size(260, 44);
+        control.MinimumSize = new Size(0, 36);
+        control.MaximumSize = Size.Empty;
         control.Dock = DockStyle.Fill;
     }
 

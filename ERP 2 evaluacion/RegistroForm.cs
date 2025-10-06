@@ -55,7 +55,6 @@ public class RegistroForm : Form
         AcceptButton = _btnRegistrar;
         CancelButton = _btnCancelar;
         Size = new Size(780, 640);
-        MinimumSize = new Size(640, 560);
 
         UiTheme.ApplyMinimalStyle(this);
 
@@ -70,10 +69,10 @@ public class RegistroForm : Form
 
         _dtpUltimoIngreso.Margin = new Padding(0, 6, 0, 16);
         _dtpUltimoIngreso.Dock = DockStyle.Fill;
-        _dtpUltimoIngreso.MinimumSize = new Size(280, 36);
+        _dtpUltimoIngreso.MinimumSize = new Size(0, 36);
         _dtpFechaCreacion.Margin = new Padding(0, 6, 0, 16);
         _dtpFechaCreacion.Dock = DockStyle.Fill;
-        _dtpFechaCreacion.MinimumSize = new Size(280, 36);
+        _dtpFechaCreacion.MinimumSize = new Size(0, 36);
 
         _btnRegistrar.Click += BtnRegistrar_Click;
 
@@ -127,8 +126,6 @@ public class RegistroForm : Form
         card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         card.Anchor = AnchorStyles.None;
         card.Padding = new Padding(40, 40, 40, 32);
-        card.MaximumSize = new Size(620, 0);
-        card.MinimumSize = new Size(560, 0);
         card.Controls.Add(layout);
 
         var root = new TableLayoutPanel
