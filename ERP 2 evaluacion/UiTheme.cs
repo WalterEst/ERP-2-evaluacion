@@ -34,6 +34,7 @@ public static class UiTheme
         form.Padding = new Padding(32);
         form.AutoScaleMode = AutoScaleMode.Dpi;
 
+        ResponsiveFormHelper.Attach(form);
         AttachMenuStripHandler(form);
     }
 
@@ -261,6 +262,7 @@ public static class UiTheme
             Padding = new Padding(24);
             Margin = new Padding(0);
             DoubleBuffered = true;
+            AutoScroll = true;
         }
 
         protected override void OnPaint(PaintEventArgs e)
