@@ -2,6 +2,14 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
+IF OBJECT_ID('dbo.VentaDetalle', 'U') IS NOT NULL DROP TABLE dbo.VentaDetalle;
+IF OBJECT_ID('dbo.Venta', 'U') IS NOT NULL DROP TABLE dbo.Venta;
+IF OBJECT_ID('dbo.MovimientoInventario', 'U') IS NOT NULL DROP TABLE dbo.MovimientoInventario;
+IF OBJECT_ID('dbo.Inventario', 'U') IS NOT NULL DROP TABLE dbo.Inventario;
+IF OBJECT_ID('dbo.Producto', 'U') IS NOT NULL DROP TABLE dbo.Producto;
+IF OBJECT_ID('dbo.CategoriaProducto', 'U') IS NOT NULL DROP TABLE dbo.CategoriaProducto;
+IF OBJECT_ID('dbo.Cliente', 'U') IS NOT NULL DROP TABLE dbo.Cliente;
+IF OBJECT_ID('dbo.Bodega', 'U') IS NOT NULL DROP TABLE dbo.Bodega;
 IF OBJECT_ID('dbo.PerfilPantallaAcceso', 'U') IS NOT NULL DROP TABLE dbo.PerfilPantallaAcceso;
 IF OBJECT_ID('dbo.UsuarioPerfil', 'U') IS NOT NULL DROP TABLE dbo.UsuarioPerfil;
 IF OBJECT_ID('dbo.Pantalla', 'U') IS NOT NULL DROP TABLE dbo.Pantalla;
@@ -83,5 +91,123 @@ CREATE TABLE dbo.PerfilPantallaAcceso
     CONSTRAINT UQ_PerfilPantalla UNIQUE(IdPerfil, IdPantalla),
     CONSTRAINT FK_PPA_Perfil FOREIGN KEY(IdPerfil) REFERENCES dbo.Perfil(IdPerfil) ON DELETE CASCADE,
     CONSTRAINT FK_PPA_Pantalla FOREIGN KEY(IdPantalla) REFERENCES dbo.Pantalla(IdPantalla) ON DELETE CASCADE
+);
+GO
+
+CREATE TABLE dbo.Bodega
+(
+    IdBodega INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo NVARCHAR(30) NOT NULL UNIQUE,
+    Nombre NVARCHAR(120) NOT NULL,
+    Ubicacion NVARCHAR(160) NULL,
+    Encargado NVARCHAR(120) NULL,
+    Descripcion NVARCHAR(300) NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_Bodega_Activo DEFAULT(1),
+    FechaCreacion DATETIME NOT NULL CONSTRAINT DF_Bodega_FechaCreacion DEFAULT(GETDATE())
+);
+GO
+
+CREATE TABLE dbo.CategoriaProducto
+(
+    IdCategoria INT IDENTITY(1,1) PRIMARY KEY,
+    Nombre NVARCHAR(120) NOT NULL UNIQUE,
+    Descripcion NVARCHAR(300) NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_CategoriaProducto_Activo DEFAULT(1),
+    FechaCreacion DATETIME NOT NULL CONSTRAINT DF_CategoriaProducto_FechaCreacion DEFAULT(GETDATE())
+);
+GO
+
+CREATE TABLE dbo.Producto
+(
+    IdProducto INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo NVARCHAR(50) NOT NULL UNIQUE,
+    Nombre NVARCHAR(160) NOT NULL,
+    Descripcion NVARCHAR(400) NULL,
+    IdCategoria INT NULL,
+    PrecioCosto DECIMAL(18,2) NOT NULL,
+    PrecioVenta DECIMAL(18,2) NOT NULL,
+    StockMinimo DECIMAL(18,2) NOT NULL CONSTRAINT DF_Producto_StockMinimo DEFAULT(0),
+    StockMaximo DECIMAL(18,2) NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_Producto_Activo DEFAULT(1),
+    FechaCreacion DATETIME NOT NULL CONSTRAINT DF_Producto_FechaCreacion DEFAULT(GETDATE()),
+    CONSTRAINT FK_Producto_Categoria FOREIGN KEY(IdCategoria) REFERENCES dbo.CategoriaProducto(IdCategoria)
+);
+GO
+
+CREATE TABLE dbo.Cliente
+(
+    IdCliente INT IDENTITY(1,1) PRIMARY KEY,
+    NombreCompleto NVARCHAR(160) NOT NULL,
+    Identificacion NVARCHAR(40) NULL,
+    TipoDocumento NVARCHAR(30) NULL,
+    Correo NVARCHAR(120) NULL,
+    Telefono NVARCHAR(40) NULL,
+    Direccion NVARCHAR(300) NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_Cliente_Activo DEFAULT(1),
+    FechaCreacion DATETIME NOT NULL CONSTRAINT DF_Cliente_FechaCreacion DEFAULT(GETDATE())
+);
+GO
+
+CREATE TABLE dbo.Inventario
+(
+    IdInventario INT IDENTITY(1,1) PRIMARY KEY,
+    IdProducto INT NOT NULL,
+    IdBodega INT NOT NULL,
+    StockActual DECIMAL(18,2) NOT NULL CONSTRAINT DF_Inventario_StockActual DEFAULT(0),
+    StockReservado DECIMAL(18,2) NOT NULL CONSTRAINT DF_Inventario_StockReservado DEFAULT(0),
+    StockMinimo DECIMAL(18,2) NOT NULL CONSTRAINT DF_Inventario_StockMinimo DEFAULT(0),
+    StockMaximo DECIMAL(18,2) NULL,
+    FechaActualizacion DATETIME NOT NULL CONSTRAINT DF_Inventario_FechaActualizacion DEFAULT(GETDATE()),
+    CONSTRAINT UQ_Inventario_ProductoBodega UNIQUE(IdProducto, IdBodega),
+    CONSTRAINT FK_Inventario_Producto FOREIGN KEY(IdProducto) REFERENCES dbo.Producto(IdProducto),
+    CONSTRAINT FK_Inventario_Bodega FOREIGN KEY(IdBodega) REFERENCES dbo.Bodega(IdBodega)
+);
+GO
+
+CREATE TABLE dbo.MovimientoInventario
+(
+    IdMovimiento INT IDENTITY(1,1) PRIMARY KEY,
+    IdInventario INT NOT NULL,
+    TipoMovimiento NVARCHAR(30) NOT NULL,
+    Cantidad DECIMAL(18,2) NOT NULL,
+    FechaMovimiento DATETIME NOT NULL CONSTRAINT DF_MovimientoInventario_Fecha DEFAULT(GETDATE()),
+    Motivo NVARCHAR(300) NULL,
+    Referencia NVARCHAR(80) NULL,
+    IdUsuario INT NULL,
+    CONSTRAINT FK_MovimientoInventario_Inventario FOREIGN KEY(IdInventario) REFERENCES dbo.Inventario(IdInventario),
+    CONSTRAINT FK_MovimientoInventario_Usuario FOREIGN KEY(IdUsuario) REFERENCES dbo.Usuario(IdUsuario)
+);
+GO
+
+CREATE TABLE dbo.Venta
+(
+    IdVenta INT IDENTITY(1,1) PRIMARY KEY,
+    Numero NVARCHAR(40) NOT NULL UNIQUE,
+    Fecha DATETIME NOT NULL CONSTRAINT DF_Venta_Fecha DEFAULT(GETDATE()),
+    IdUsuario INT NOT NULL,
+    IdCliente INT NULL,
+    IdBodega INT NOT NULL,
+    Subtotal DECIMAL(18,2) NOT NULL,
+    Impuestos DECIMAL(18,2) NOT NULL,
+    Total DECIMAL(18,2) NOT NULL,
+    Observaciones NVARCHAR(400) NULL,
+    Estado NVARCHAR(20) NOT NULL CONSTRAINT DF_Venta_Estado DEFAULT('COMPLETADA'),
+    CONSTRAINT FK_Venta_Usuario FOREIGN KEY(IdUsuario) REFERENCES dbo.Usuario(IdUsuario),
+    CONSTRAINT FK_Venta_Cliente FOREIGN KEY(IdCliente) REFERENCES dbo.Cliente(IdCliente),
+    CONSTRAINT FK_Venta_Bodega FOREIGN KEY(IdBodega) REFERENCES dbo.Bodega(IdBodega)
+);
+GO
+
+CREATE TABLE dbo.VentaDetalle
+(
+    IdVentaDetalle INT IDENTITY(1,1) PRIMARY KEY,
+    IdVenta INT NOT NULL,
+    IdProducto INT NOT NULL,
+    Cantidad DECIMAL(18,2) NOT NULL,
+    PrecioUnitario DECIMAL(18,2) NOT NULL,
+    Descuento DECIMAL(18,2) NOT NULL CONSTRAINT DF_VentaDetalle_Descuento DEFAULT(0),
+    Total DECIMAL(18,2) NOT NULL,
+    CONSTRAINT FK_VentaDetalle_Venta FOREIGN KEY(IdVenta) REFERENCES dbo.Venta(IdVenta) ON DELETE CASCADE,
+    CONSTRAINT FK_VentaDetalle_Producto FOREIGN KEY(IdProducto) REFERENCES dbo.Producto(IdProducto)
 );
 GO

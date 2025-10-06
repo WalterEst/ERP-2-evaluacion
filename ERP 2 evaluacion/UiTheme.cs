@@ -18,6 +18,8 @@ public static class UiTheme
     public static readonly Color SecondaryButtonHoverColor = Color.FromArgb(218, 224, 236);
     public static readonly Color DangerColor = Color.FromArgb(218, 63, 60);
     public static readonly Color DangerColorHover = Color.FromArgb(185, 50, 48);
+    public static readonly Color SuccessColor = Color.FromArgb(46, 160, 67);
+    public static readonly Color SuccessColorHover = Color.FromArgb(35, 138, 55);
 
     public static readonly Font BaseFont = new("Segoe UI", 11F, FontStyle.Regular, GraphicsUnit.Point);
     public static readonly Font TitleFont = new("Segoe UI", 22F, FontStyle.Bold, GraphicsUnit.Point);
@@ -186,6 +188,15 @@ public static class UiTheme
         button.ForeColor = Color.White;
         button.FlatAppearance.MouseOverBackColor = DangerColorHover;
         button.FlatAppearance.BorderColor = DangerColor;
+    }
+
+    public static void StyleSuccessButton(Button button)
+    {
+        StyleBaseButton(button);
+        button.BackColor = SuccessColor;
+        button.ForeColor = Color.White;
+        button.FlatAppearance.MouseOverBackColor = SuccessColorHover;
+        button.FlatAppearance.BorderColor = SuccessColor;
     }
 
     private static void StyleBaseButton(Button button)
