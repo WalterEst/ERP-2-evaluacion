@@ -43,7 +43,6 @@ public class SuperUsuarioForm : Form
         AcceptButton = _btnCrear;
         CancelButton = _btnCancelar;
         Size = new Size(780, 640);
-        MinimumSize = new Size(640, 560);
 
         UiTheme.ApplyMinimalStyle(this);
         UiTheme.StyleTextInput(_txtNombreCompleto);
@@ -131,8 +130,6 @@ public class SuperUsuarioForm : Form
         card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         card.Anchor = AnchorStyles.None;
         card.Padding = new Padding(40, 40, 40, 32);
-        card.MaximumSize = new Size(620, 0);
-        card.MinimumSize = new Size(560, 0);
         card.Controls.Add(layout);
 
         var root = new TableLayoutPanel

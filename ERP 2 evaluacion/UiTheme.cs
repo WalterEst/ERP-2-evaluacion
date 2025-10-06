@@ -140,7 +140,7 @@ public static class UiTheme
         textBox.BackColor = SurfaceColor;
         textBox.ForeColor = TextColor;
         textBox.Margin = new Padding(0, 6, 0, 16);
-        textBox.MinimumSize = new Size(280, 36);
+        textBox.MinimumSize = new Size(0, 36);
         textBox.Dock = DockStyle.Fill;
     }
 
@@ -152,7 +152,7 @@ public static class UiTheme
         comboBox.Margin = new Padding(0, 6, 0, 16);
         comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
         comboBox.Dock = DockStyle.Fill;
-        comboBox.MinimumSize = new Size(280, 36);
+        comboBox.MinimumSize = new Size(0, 36);
         comboBox.IntegralHeight = false;
     }
 
@@ -207,7 +207,7 @@ public static class UiTheme
         button.Padding = new Padding(20, 10, 20, 10);
         button.Margin = new Padding(8, 0, 0, 0);
         button.AutoSize = true;
-        button.MinimumSize = new Size(160, 44);
+        button.MinimumSize = new Size(0, 44);
         button.Cursor = Cursors.Hand;
         button.UseVisualStyleBackColor = false;
     }

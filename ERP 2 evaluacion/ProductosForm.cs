@@ -44,7 +44,6 @@ public class ProductosForm : Form
         Text = "Productos";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1280, 840);
-        MinimumSize = new Size(1120, 720);
 
         UiTheme.ApplyMinimalStyle(this);
 

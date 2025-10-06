@@ -35,7 +35,6 @@ public class LoginForm : Form
         MinimizeBox = true;
         AcceptButton = _btnIngresar;
         Size = new Size(720, 540);
-        MinimumSize = new Size(560, 480);
 
         UiTheme.ApplyMinimalStyle(this);
 
@@ -96,8 +95,6 @@ public class LoginForm : Form
         card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         card.Anchor = AnchorStyles.None;
         card.Padding = new Padding(40, 40, 40, 32);
-        card.MaximumSize = new Size(560, 0);
-        card.MinimumSize = new Size(520, 0);
         card.Controls.Add(layout);
 
         var root = new TableLayoutPanel
