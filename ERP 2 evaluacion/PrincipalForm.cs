@@ -96,9 +96,9 @@ namespace ERP_2_evaluacion
             var heroPanel = new HeroPanel
             {
                 Dock = DockStyle.Fill,
-                Height = 200,
+                MinimumSize = new Size(0, 240),
                 Margin = new Padding(0, 0, 0, 24),
-                Padding = new Padding(32, 28, 32, 28)
+                Padding = new Padding(32, 36, 32, 40)
             };
 
             var heroLayout = new TableLayoutPanel
@@ -133,7 +133,7 @@ namespace ERP_2_evaluacion
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                Margin = new Padding(0, 20, 0, 0)
+                Margin = new Padding(0, 28, 0, 0)
             };
             heroStats.Controls.Add(CrearChipEstadistica("Pantallas activas", _lblHeroTotalPantallas));
             heroStats.Controls.Add(CrearChipEstadistica("Secciones", _lblHeroTotalSecciones));
