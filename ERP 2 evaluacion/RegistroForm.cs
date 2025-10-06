@@ -9,7 +9,7 @@ namespace ERP_2_evaluacion;
 
 public class RegistroForm : Form
 {
-    internal const string CodigoPerfilPorDefecto = "BASICO";
+    internal const string CodigoPerfilPorDefecto = "VENDEDOR";
 
     private readonly Label _lblTitulo = UiTheme.CreateTitleLabel("Crear una cuenta");
     private readonly Label _lblSubtitulo = new()
@@ -297,7 +297,7 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);", connection);
                 if (resultado == null)
                 {
                     using var crearPerfil = new SqlCommand(
-                        "INSERT INTO Perfil (NombrePerfil, Codigo, Descripcion, Activo) VALUES ('Básico', @codigoPerfil, 'Perfil por defecto', 1);" +
+                        "INSERT INTO Perfil (NombrePerfil, Codigo, Descripcion, Activo) VALUES ('Vendedor', @codigoPerfil, 'Perfil por defecto de vendedores', 1);" +
                         "SELECT CAST(SCOPE_IDENTITY() AS INT);", connection, transaction);
                     crearPerfil.Parameters.AddWithValue("@codigoPerfil", codigoPerfil);
                     var nuevoId = crearPerfil.ExecuteScalar();
