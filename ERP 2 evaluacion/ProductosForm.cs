@@ -448,7 +448,7 @@ USING (
 ON destino.IdProducto = @producto AND destino.IdBodega = origen.IdBodega
 WHEN MATCHED THEN
     UPDATE SET StockMinimo = @stockMinimo,
-               StockMaximo = @stockMaximo,
+               StockMaximo = @stockMaximo
 WHEN NOT MATCHED THEN
     INSERT (IdProducto, IdBodega, StockActual, StockReservado, StockMinimo, StockMaximo)
     VALUES (@producto, origen.IdBodega, 0, 0, @stockMinimo, @stockMaximo);", connection, transaction);
