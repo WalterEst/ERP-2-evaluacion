@@ -66,7 +66,7 @@ namespace ERP_2_evaluacion
 
             _lblBienvenida.Text = $"Hola, {_nombreUsuario}";
             _lblBienvenida.Font = UiTheme.TitleFont;
-            _lblBienvenida.ForeColor = Color.White;
+            _lblBienvenida.ForeColor = Color.Black;
             _lblBienvenida.Margin = new Padding(0);
 
             _lblHeroSubtitulo.Text = _heroSubtitleDefault;
@@ -96,9 +96,9 @@ namespace ERP_2_evaluacion
             var heroPanel = new HeroPanel
             {
                 Dock = DockStyle.Fill,
-                MinimumSize = new Size(0, 240),
+                MinimumSize = new Size(0, 340),
                 Margin = new Padding(0, 0, 0, 24),
-                Padding = new Padding(32, 36, 32, 40)
+                Padding = new Padding(40, 44, 40, 48)
             };
 
             var heroLayout = new TableLayoutPanel
@@ -133,7 +133,7 @@ namespace ERP_2_evaluacion
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                Margin = new Padding(0, 28, 0, 0)
+                Margin = new Padding(0, 38, 0, 0)
             };
             heroStats.Controls.Add(CrearChipEstadistica("Pantallas activas", _lblHeroTotalPantallas));
             heroStats.Controls.Add(CrearChipEstadistica("Secciones", _lblHeroTotalSecciones));
@@ -393,7 +393,9 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
                     _lblResumenAccesos.Text = totalPantallas == 1
                         ? "Tienes acceso a 1 pantalla disponible."
                         : $"Tienes acceso a {totalPantallas} pantallas distribuidas en {totalSecciones} secciones.";
+                    _lblResumenAccesos.ForeColor = Color.Black;
                     _lblHeroSubtitulo.Text = $"{_heroSubtitleDefault}\nGestionas {totalPantallas} pantallas en {totalSecciones} secciones.";
+                    _lblHeroSubtitulo.ForeColor = Color.Black;
                 }
                 else
                 {
