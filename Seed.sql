@@ -88,6 +88,104 @@ BEGIN TRY
     END;
 
     /*--------------------------------------------------------
+      1b) Niveles de permiso base
+    --------------------------------------------------------*/
+    IF EXISTS (SELECT 1 FROM dbo.NivelPermiso WHERE Codigo = 'SIN_ACCESO')
+    BEGIN
+        UPDATE dbo.NivelPermiso
+           SET Nombre = N'Sin acceso',
+               Descripcion = N'Deshabilita por completo la pantalla para el rol seleccionado.',
+               PuedeVer = 0,
+               PuedeCrear = 0,
+               PuedeEditar = 0,
+               PuedeEliminar = 0,
+               PuedeExportar = 0,
+               EsPersonalizado = 0
+         WHERE Codigo = 'SIN_ACCESO';
+    END
+    ELSE
+    BEGIN
+        INSERT INTO dbo.NivelPermiso (Codigo, Nombre, Descripcion, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, EsPersonalizado)
+        VALUES ('SIN_ACCESO', N'Sin acceso', N'Deshabilita por completo la pantalla para el rol seleccionado.', 0, 0, 0, 0, 0, 0);
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.NivelPermiso WHERE Codigo = 'LECTURA')
+    BEGIN
+        UPDATE dbo.NivelPermiso
+           SET Nombre = N'Lectura',
+               Descripcion = N'Permite consultar la información sin realizar modificaciones.',
+               PuedeVer = 1,
+               PuedeCrear = 0,
+               PuedeEditar = 0,
+               PuedeEliminar = 0,
+               PuedeExportar = 0,
+               EsPersonalizado = 0
+         WHERE Codigo = 'LECTURA';
+    END
+    ELSE
+    BEGIN
+        INSERT INTO dbo.NivelPermiso (Codigo, Nombre, Descripcion, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, EsPersonalizado)
+        VALUES ('LECTURA', N'Lectura', N'Permite consultar la información sin realizar modificaciones.', 1, 0, 0, 0, 0, 0);
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.NivelPermiso WHERE Codigo = 'OPERACION')
+    BEGIN
+        UPDATE dbo.NivelPermiso
+           SET Nombre = N'Operación',
+               Descripcion = N'Permite crear y procesar transacciones operativas sin realizar ediciones avanzadas ni eliminaciones.',
+               PuedeVer = 1,
+               PuedeCrear = 1,
+               PuedeEditar = 0,
+               PuedeEliminar = 0,
+               PuedeExportar = 1,
+               EsPersonalizado = 0
+         WHERE Codigo = 'OPERACION';
+    END
+    ELSE
+    BEGIN
+        INSERT INTO dbo.NivelPermiso (Codigo, Nombre, Descripcion, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, EsPersonalizado)
+        VALUES ('OPERACION', N'Operación', N'Permite crear y procesar transacciones operativas sin realizar ediciones avanzadas ni eliminaciones.', 1, 1, 0, 0, 1, 0);
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.NivelPermiso WHERE Codigo = 'COLABORACION')
+    BEGIN
+        UPDATE dbo.NivelPermiso
+           SET Nombre = N'Colaboración',
+               Descripcion = N'Habilita crear, editar y exportar datos sin permitir eliminaciones.',
+               PuedeVer = 1,
+               PuedeCrear = 1,
+               PuedeEditar = 1,
+               PuedeEliminar = 0,
+               PuedeExportar = 1,
+               EsPersonalizado = 0
+         WHERE Codigo = 'COLABORACION';
+    END
+    ELSE
+    BEGIN
+        INSERT INTO dbo.NivelPermiso (Codigo, Nombre, Descripcion, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, EsPersonalizado)
+        VALUES ('COLABORACION', N'Colaboración', N'Habilita crear, editar y exportar datos sin permitir eliminaciones.', 1, 1, 1, 0, 1, 0);
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.NivelPermiso WHERE Codigo = 'ADMINISTRACION')
+    BEGIN
+        UPDATE dbo.NivelPermiso
+           SET Nombre = N'Administración',
+               Descripcion = N'Otorga todos los permisos disponibles, incluyendo eliminar registros.',
+               PuedeVer = 1,
+               PuedeCrear = 1,
+               PuedeEditar = 1,
+               PuedeEliminar = 1,
+               PuedeExportar = 1,
+               EsPersonalizado = 0
+         WHERE Codigo = 'ADMINISTRACION';
+    END
+    ELSE
+    BEGIN
+        INSERT INTO dbo.NivelPermiso (Codigo, Nombre, Descripcion, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, EsPersonalizado)
+        VALUES ('ADMINISTRACION', N'Administración', N'Otorga todos los permisos disponibles, incluyendo eliminar registros.', 1, 1, 1, 1, 1, 0);
+    END;
+
+    /*--------------------------------------------------------
       2) Roles
     --------------------------------------------------------*/
     IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Codigo = 'SUPERADMIN')
@@ -118,6 +216,8 @@ BEGIN TRY
     DECLARE @IdPerfilAdmin     INT = (SELECT TOP(1) IdPerfil FROM dbo.Perfil WHERE Codigo = 'ADMIN');
     DECLARE @IdPerfilBodeguero INT = (SELECT TOP(1) IdPerfil FROM dbo.Perfil WHERE Codigo = 'BODEGUERO');
     DECLARE @IdPerfilVendedor  INT = (SELECT TOP(1) IdPerfil FROM dbo.Perfil WHERE Codigo = 'VENDEDOR');
+
+    DECLARE @IdNivelAdministracion INT = (SELECT TOP(1) IdNivelPermiso FROM dbo.NivelPermiso WHERE Codigo = 'ADMINISTRACION');
 
     /*--------------------------------------------------------
       3) Usuario admin (crear/actualizar) + asignar SUPERADMIN
@@ -177,6 +277,7 @@ BEGIN TRY
            d.PuedeEliminar = 1,
            d.PuedeExportar = 1,
            d.Activo = 1,
+           d.IdNivelPermiso = @IdNivelAdministracion,
            d.FechaOtorgado = @Ahora,
            d.OtorgadoPor = N'SEED'
       FROM dbo.PerfilPantallaAcceso d
@@ -185,8 +286,8 @@ BEGIN TRY
 
     -- INSERT faltantes
     INSERT INTO dbo.PerfilPantallaAcceso
-        (IdPerfil, IdPantalla, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
-    SELECT @IdPerfilSuper, p.IdPantalla, 1, 1, 1, 1, 1, 1, @Ahora, N'SEED'
+        (IdPerfil, IdPantalla, IdNivelPermiso, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
+    SELECT @IdPerfilSuper, p.IdPantalla, @IdNivelAdministracion, 1, 1, 1, 1, 1, 1, @Ahora, N'SEED'
       FROM dbo.Pantalla p
       WHERE NOT EXISTS (
             SELECT 1
@@ -220,19 +321,40 @@ BEGIN TRY
                d.PuedeEliminar = r.PuedeEliminar,
                d.PuedeExportar = r.PuedeExportar,
                d.Activo = 1,
+               d.IdNivelPermiso = nivel.IdNivelPermiso,
                d.FechaOtorgado = @Ahora,
                d.OtorgadoPor = N'SEED'
           FROM dbo.PerfilPantallaAcceso d
           JOIN dbo.Pantalla p ON p.IdPantalla = d.IdPantalla
           JOIN @PermisosAdmin r ON r.Codigo = p.Codigo
+          OUTER APPLY (
+                SELECT TOP(1) np.IdNivelPermiso
+                FROM dbo.NivelPermiso np
+                WHERE np.PuedeVer = r.PuedeVer
+                  AND np.PuedeCrear = r.PuedeCrear
+                  AND np.PuedeEditar = r.PuedeEditar
+                  AND np.PuedeEliminar = r.PuedeEliminar
+                  AND np.PuedeExportar = r.PuedeExportar
+                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
+          ) nivel
          WHERE d.IdPerfil = @IdPerfilAdmin;
 
         -- INSERT faltantes
         INSERT INTO dbo.PerfilPantallaAcceso
-            (IdPerfil, IdPantalla, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
-        SELECT @IdPerfilAdmin, p.IdPantalla, r.PuedeVer, r.PuedeCrear, r.PuedeEditar, r.PuedeEliminar, r.PuedeExportar, 1, @Ahora, N'SEED'
+            (IdPerfil, IdPantalla, IdNivelPermiso, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
+        SELECT @IdPerfilAdmin, p.IdPantalla, nivel.IdNivelPermiso, r.PuedeVer, r.PuedeCrear, r.PuedeEditar, r.PuedeEliminar, r.PuedeExportar, 1, @Ahora, N'SEED'
           FROM @PermisosAdmin r
           JOIN dbo.Pantalla p ON p.Codigo = r.Codigo
+          OUTER APPLY (
+                SELECT TOP(1) np.IdNivelPermiso
+                FROM dbo.NivelPermiso np
+                WHERE np.PuedeVer = r.PuedeVer
+                  AND np.PuedeCrear = r.PuedeCrear
+                  AND np.PuedeEditar = r.PuedeEditar
+                  AND np.PuedeEliminar = r.PuedeEliminar
+                  AND np.PuedeExportar = r.PuedeExportar
+                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
+          ) nivel
          WHERE NOT EXISTS (
                 SELECT 1
                   FROM dbo.PerfilPantallaAcceso a
@@ -261,19 +383,40 @@ BEGIN TRY
                d.PuedeEliminar = r.PuedeEliminar,
                d.PuedeExportar = r.PuedeExportar,
                d.Activo = 1,
+               d.IdNivelPermiso = nivel.IdNivelPermiso,
                d.FechaOtorgado = @Ahora,
                d.OtorgadoPor = N'SEED'
           FROM dbo.PerfilPantallaAcceso d
           JOIN dbo.Pantalla p ON p.IdPantalla = d.IdPantalla
           JOIN @PermisosBodeguero r ON r.Codigo = p.Codigo
+          OUTER APPLY (
+                SELECT TOP(1) np.IdNivelPermiso
+                FROM dbo.NivelPermiso np
+                WHERE np.PuedeVer = r.PuedeVer
+                  AND np.PuedeCrear = r.PuedeCrear
+                  AND np.PuedeEditar = r.PuedeEditar
+                  AND np.PuedeEliminar = r.PuedeEliminar
+                  AND np.PuedeExportar = r.PuedeExportar
+                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
+          ) nivel
          WHERE d.IdPerfil = @IdPerfilBodeguero;
 
         -- INSERT faltantes
         INSERT INTO dbo.PerfilPantallaAcceso
-            (IdPerfil, IdPantalla, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
-        SELECT @IdPerfilBodeguero, p.IdPantalla, r.PuedeVer, r.PuedeCrear, r.PuedeEditar, r.PuedeEliminar, r.PuedeExportar, 1, @Ahora, N'SEED'
+            (IdPerfil, IdPantalla, IdNivelPermiso, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
+        SELECT @IdPerfilBodeguero, p.IdPantalla, nivel.IdNivelPermiso, r.PuedeVer, r.PuedeCrear, r.PuedeEditar, r.PuedeEliminar, r.PuedeExportar, 1, @Ahora, N'SEED'
           FROM @PermisosBodeguero r
           JOIN dbo.Pantalla p ON p.Codigo = r.Codigo
+          OUTER APPLY (
+                SELECT TOP(1) np.IdNivelPermiso
+                FROM dbo.NivelPermiso np
+                WHERE np.PuedeVer = r.PuedeVer
+                  AND np.PuedeCrear = r.PuedeCrear
+                  AND np.PuedeEditar = r.PuedeEditar
+                  AND np.PuedeEliminar = r.PuedeEliminar
+                  AND np.PuedeExportar = r.PuedeExportar
+                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
+          ) nivel
          WHERE NOT EXISTS (
                 SELECT 1
                   FROM dbo.PerfilPantallaAcceso a
@@ -301,19 +444,40 @@ BEGIN TRY
                d.PuedeEliminar = r.PuedeEliminar,
                d.PuedeExportar = r.PuedeExportar,
                d.Activo = 1,
+               d.IdNivelPermiso = nivel.IdNivelPermiso,
                d.FechaOtorgado = @Ahora,
                d.OtorgadoPor = N'SEED'
           FROM dbo.PerfilPantallaAcceso d
           JOIN dbo.Pantalla p ON p.IdPantalla = d.IdPantalla
           JOIN @PermisosVendedor r ON r.Codigo = p.Codigo
+          OUTER APPLY (
+                SELECT TOP(1) np.IdNivelPermiso
+                FROM dbo.NivelPermiso np
+                WHERE np.PuedeVer = r.PuedeVer
+                  AND np.PuedeCrear = r.PuedeCrear
+                  AND np.PuedeEditar = r.PuedeEditar
+                  AND np.PuedeEliminar = r.PuedeEliminar
+                  AND np.PuedeExportar = r.PuedeExportar
+                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
+          ) nivel
          WHERE d.IdPerfil = @IdPerfilVendedor;
 
         -- INSERT faltantes
         INSERT INTO dbo.PerfilPantallaAcceso
-            (IdPerfil, IdPantalla, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
-        SELECT @IdPerfilVendedor, p.IdPantalla, r.PuedeVer, r.PuedeCrear, r.PuedeEditar, r.PuedeEliminar, r.PuedeExportar, 1, @Ahora, N'SEED'
+            (IdPerfil, IdPantalla, IdNivelPermiso, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
+        SELECT @IdPerfilVendedor, p.IdPantalla, nivel.IdNivelPermiso, r.PuedeVer, r.PuedeCrear, r.PuedeEditar, r.PuedeEliminar, r.PuedeExportar, 1, @Ahora, N'SEED'
           FROM @PermisosVendedor r
           JOIN dbo.Pantalla p ON p.Codigo = r.Codigo
+          OUTER APPLY (
+                SELECT TOP(1) np.IdNivelPermiso
+                FROM dbo.NivelPermiso np
+                WHERE np.PuedeVer = r.PuedeVer
+                  AND np.PuedeCrear = r.PuedeCrear
+                  AND np.PuedeEditar = r.PuedeEditar
+                  AND np.PuedeEliminar = r.PuedeEliminar
+                  AND np.PuedeExportar = r.PuedeExportar
+                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
+          ) nivel
          WHERE NOT EXISTS (
                 SELECT 1
                   FROM dbo.PerfilPantallaAcceso a
