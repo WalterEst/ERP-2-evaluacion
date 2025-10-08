@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace ERP_2_evaluacion;
 
-public class PerfilesForm : Form
+public class RolesForm : Form
 {
     private readonly DataGridView _grid = new() { Dock = DockStyle.Fill, ReadOnly = true, SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false, AutoGenerateColumns = false };
     private readonly TextBox _txtNombre = new();
@@ -21,9 +21,9 @@ public class PerfilesForm : Form
 
     private int? _idSeleccionado;
 
-    public PerfilesForm()
+    public RolesForm()
     {
-        Text = "Perfiles";
+        Text = "Roles";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1200, 780);
 
@@ -62,12 +62,12 @@ public class PerfilesForm : Form
 
         Controls.Add(_splitContainer);
 
-        Load += PerfilesForm_Load;
-        SizeChanged += PerfilesForm_SizeChanged;
+        Load += RolesForm_Load;
+        SizeChanged += RolesForm_SizeChanged;
         _grid.SelectionChanged += Grid_SelectionChanged;
         _btnNuevo.Click += (_, _) => LimpiarFormulario();
-        _btnGuardar.Click += (_, _) => GuardarPerfil();
-        _btnEliminar.Click += (_, _) => EliminarPerfil();
+        _btnGuardar.Click += (_, _) => GuardarRol();
+        _btnEliminar.Click += (_, _) => EliminarRol();
     }
 
     protected override void OnShown(EventArgs e)
@@ -76,13 +76,13 @@ public class PerfilesForm : Form
         AjustarSplit();
     }
 
-    private void PerfilesForm_Load(object? sender, EventArgs e)
+    private void RolesForm_Load(object? sender, EventArgs e)
     {
         BeginInvoke((Action)AjustarSplit);
-        CargarPerfiles();
+        CargarRoles();
     }
 
-    private void PerfilesForm_SizeChanged(object? sender, EventArgs e)
+    private void RolesForm_SizeChanged(object? sender, EventArgs e)
     {
         AjustarSplit();
     }
@@ -167,7 +167,7 @@ public class PerfilesForm : Form
         return panel;
     }
 
-    private void CargarPerfiles()
+    private void CargarRoles()
     {
         try
         {
@@ -175,7 +175,7 @@ public class PerfilesForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al cargar perfiles: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show($"Error al cargar roles: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -207,7 +207,7 @@ public class PerfilesForm : Form
         _grid.ClearSelection();
     }
 
-    private void GuardarPerfil()
+    private void GuardarRol()
     {
         _lblMensaje.Text = string.Empty;
         var nombre = _txtNombre.Text.Trim();
@@ -252,7 +252,7 @@ public class PerfilesForm : Form
                 actualizar.Parameters.AddWithValue("@activo", activo);
                 actualizar.Parameters.AddWithValue("@id", _idSeleccionado.Value);
                 actualizar.ExecuteNonQuery();
-                MessageBox.Show("Perfil actualizado", "Perfiles", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Rol actualizado", "Roles", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
@@ -262,24 +262,24 @@ public class PerfilesForm : Form
                 insertar.Parameters.AddWithValue("@descripcion", string.IsNullOrWhiteSpace(descripcion) ? DBNull.Value : descripcion);
                 insertar.Parameters.AddWithValue("@activo", activo);
                 insertar.ExecuteNonQuery();
-                MessageBox.Show("Perfil creado", "Perfiles", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Rol creado", "Roles", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al guardar perfil: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show($"Error al guardar rol: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
-        CargarPerfiles();
+        CargarRoles();
         LimpiarFormulario();
     }
 
-    private void EliminarPerfil()
+    private void EliminarRol()
     {
         if (!_idSeleccionado.HasValue)
         {
-            MessageBox.Show("Seleccione un perfil", "Perfiles", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show("Seleccione un rol", "Roles", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
@@ -291,11 +291,11 @@ public class PerfilesForm : Form
             validar.Parameters.AddWithValue("@id", _idSeleccionado.Value);
             if ((int)validar.ExecuteScalar() > 0)
             {
-                MessageBox.Show("No es posible eliminar: hay usuarios asignados", "Perfiles", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("No es posible eliminar: hay usuarios asignados", "Roles", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (MessageBox.Show("¿Eliminar perfil seleccionado?", "Perfiles", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+            if (MessageBox.Show("¿Eliminar rol seleccionado?", "Roles", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             {
                 return;
             }
@@ -306,11 +306,11 @@ public class PerfilesForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al eliminar perfil: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show($"Error al eliminar rol: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
-        CargarPerfiles();
+        CargarRoles();
         LimpiarFormulario();
     }
 }

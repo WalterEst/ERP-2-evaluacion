@@ -9,17 +9,18 @@ namespace ERP_2_evaluacion;
 
 public class AccesosForm : Form
 {
-    private readonly ComboBox _cmbPerfil = new() { DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly ComboBox _cmbRol = new() { DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly DataGridView _grid = new() { Dock = DockStyle.Fill, AutoGenerateColumns = false, AllowUserToAddRows = false };
     private readonly Button _btnGuardar = new() { Text = "Guardar" };
     private readonly DataGridViewComboBoxColumn _colNivel;
     private bool _actualizandoNivel;
     private DataTable? _tablaAccesos;
+    private readonly string? _usuarioActual;
 
     private readonly IReadOnlyList<NivelPermisoDefinition> _nivelesPermiso = new List<NivelPermisoDefinition>
     {
         new("Sin acceso", false, false, false, false, false,
-            "Deshabilita por completo la pantalla para el perfil seleccionado."),
+            "Deshabilita por completo la pantalla para el rol seleccionado."),
         new("Lectura", true, false, false, false, false,
             "Permite consultar la información sin realizar modificaciones."),
         new("Colaboración", true, true, true, false, true,
@@ -28,11 +29,13 @@ public class AccesosForm : Form
             "Otorga todos los permisos disponibles, incluyendo eliminar registros.")
     };
 
-    public AccesosForm()
+    public AccesosForm(string? usuarioActual = null)
     {
         Text = "Accesos";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1280, 840);
+
+        _usuarioActual = string.IsNullOrWhiteSpace(usuarioActual) ? null : usuarioActual;
 
         UiTheme.ApplyMinimalStyle(this);
 
@@ -55,7 +58,7 @@ public class AccesosForm : Form
         ConfigurarGrid();
         _grid.EditMode = DataGridViewEditMode.EditOnEnter;
         UiTheme.StyleDataGrid(_grid);
-        UiTheme.StyleComboBox(_cmbPerfil);
+        UiTheme.StyleComboBox(_cmbRol);
         UiTheme.StylePrimaryButton(_btnGuardar);
         _btnGuardar.Margin = new Padding(0, 0, 0, 0);
 
@@ -72,9 +75,9 @@ public class AccesosForm : Form
         };
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        headerLayout.Controls.Add(UiTheme.CreateSectionLabel("Perfil"), 0, 0);
-        headerLayout.Controls.Add(_cmbPerfil, 1, 0);
-        _cmbPerfil.Margin = new Padding(16, 0, 0, 0);
+        headerLayout.Controls.Add(UiTheme.CreateSectionLabel("Rol"), 0, 0);
+        headerLayout.Controls.Add(_cmbRol, 1, 0);
+        _cmbRol.Margin = new Padding(16, 0, 0, 0);
 
         var legendPanel = CrearPanelLeyenda();
 
@@ -100,8 +103,8 @@ public class AccesosForm : Form
 
         Controls.Add(card);
 
-        Load += (_, _) => CargarPerfiles();
-        _cmbPerfil.SelectedIndexChanged += (_, _) => CargarAccesos();
+        Load += (_, _) => CargarRoles();
+        _cmbRol.SelectedIndexChanged += (_, _) => CargarAccesos();
         _btnGuardar.Click += (_, _) => GuardarAccesos();
         _grid.CellValueChanged += Grid_CellValueChanged;
         _grid.CellFormatting += Grid_CellFormatting;
@@ -132,24 +135,24 @@ public class AccesosForm : Form
         _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "IdAcceso", DataPropertyName = "IdPerfilPantallaAcceso", Visible = false, ReadOnly = true });
     }
 
-    private void CargarPerfiles()
+    private void CargarRoles()
     {
         try
         {
             var perfiles = Db.GetDataTable("SELECT IdPerfil, NombrePerfil FROM Perfil WHERE Activo = 1 ORDER BY NombrePerfil");
-            _cmbPerfil.DisplayMember = "NombrePerfil";
-            _cmbPerfil.ValueMember = "IdPerfil";
-            _cmbPerfil.DataSource = perfiles;
+            _cmbRol.DisplayMember = "NombrePerfil";
+            _cmbRol.ValueMember = "IdPerfil";
+            _cmbRol.DataSource = perfiles;
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al cargar perfiles: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show($"Error al cargar roles: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
     private void CargarAccesos()
     {
-        if (_cmbPerfil.SelectedValue is not int idPerfil)
+        if (_cmbRol.SelectedValue is not int idPerfil)
         {
             _grid.DataSource = null;
             return;
@@ -436,9 +439,9 @@ ORDER BY ISNULL(p.IdPadre, 0), p.Orden, p.NombrePantalla", connection);
 
     private void GuardarAccesos()
     {
-        if (_cmbPerfil.SelectedValue is not int idPerfil || _tablaAccesos == null)
+        if (_cmbRol.SelectedValue is not int idPerfil || _tablaAccesos == null)
         {
-            MessageBox.Show("Seleccione un perfil", "Accesos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show("Seleccione un rol", "Accesos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
@@ -447,6 +450,13 @@ ORDER BY ISNULL(p.IdPadre, 0), p.Orden, p.NombrePantalla", connection);
             using var connection = Db.GetConnection();
             connection.Open();
             using var transaction = connection.BeginTransaction();
+
+            string? otorgadoPor = _usuarioActual;
+            if (!string.IsNullOrWhiteSpace(otorgadoPor) && otorgadoPor.Length > 40)
+            {
+                otorgadoPor = otorgadoPor[..40];
+            }
+            var otorgadoPorParametro = string.IsNullOrWhiteSpace(otorgadoPor) ? (object)DBNull.Value : otorgadoPor;
 
             foreach (DataRow fila in _tablaAccesos.Rows)
             {
@@ -459,17 +469,31 @@ ORDER BY ISNULL(p.IdPadre, 0), p.Orden, p.NombrePantalla", connection);
                 var puedeExportar = fila.Field<bool>("PuedeExportar");
                 var activo = fila.Field<bool>("Activo");
 
+                if (!activo)
+                {
+                    puedeVer = false;
+                }
+
                 if (!puedeVer)
                 {
                     puedeCrear = puedeEditar = puedeEliminar = puedeExportar = false;
+                    activo = false;
                 }
+
+                fila["PuedeVer"] = puedeVer;
+                fila["PuedeCrear"] = puedeCrear;
+                fila["PuedeEditar"] = puedeEditar;
+                fila["PuedeEliminar"] = puedeEliminar;
+                fila["PuedeExportar"] = puedeExportar;
+                fila["Activo"] = activo;
+                ActualizarNivelEnFila(fila);
 
                 if (idAcceso == 0)
                 {
                     if (puedeVer || puedeCrear || puedeEditar || puedeEliminar || puedeExportar)
                     {
-                        using var insertar = new SqlCommand(@"INSERT INTO PerfilPantallaAcceso(IdPerfil, IdPantalla, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo)
-VALUES(@perfil, @pantalla, @ver, @crear, @editar, @eliminar, @exportar, @activo);
+                        using var insertar = new SqlCommand(@"INSERT INTO PerfilPantallaAcceso(IdPerfil, IdPantalla, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
+VALUES(@perfil, @pantalla, @ver, @crear, @editar, @eliminar, @exportar, @activo, GETDATE(), @otorgadoPor);
 SELECT SCOPE_IDENTITY();", connection, transaction);
                         insertar.Parameters.AddWithValue("@perfil", idPerfil);
                         insertar.Parameters.AddWithValue("@pantalla", idPantalla);
@@ -479,6 +503,7 @@ SELECT SCOPE_IDENTITY();", connection, transaction);
                         insertar.Parameters.AddWithValue("@eliminar", puedeEliminar);
                         insertar.Parameters.AddWithValue("@exportar", puedeExportar);
                         insertar.Parameters.AddWithValue("@activo", activo);
+                        insertar.Parameters.AddWithValue("@otorgadoPor", otorgadoPorParametro);
                         var nuevoId = Convert.ToInt32(insertar.ExecuteScalar());
                         fila["IdPerfilPantallaAcceso"] = nuevoId;
                     }
@@ -488,7 +513,7 @@ SELECT SCOPE_IDENTITY();", connection, transaction);
                     if (puedeVer || puedeCrear || puedeEditar || puedeEliminar || puedeExportar)
                     {
                         using var actualizar = new SqlCommand(@"UPDATE PerfilPantallaAcceso SET PuedeVer = @ver, PuedeCrear = @crear, PuedeEditar = @editar,
-PuedeEliminar = @eliminar, PuedeExportar = @exportar, Activo = @activo, FechaOtorgado = GETDATE()
+PuedeEliminar = @eliminar, PuedeExportar = @exportar, Activo = @activo, FechaOtorgado = GETDATE(), OtorgadoPor = @otorgadoPor
 WHERE IdPerfilPantallaAcceso = @id", connection, transaction);
                         actualizar.Parameters.AddWithValue("@ver", puedeVer);
                         actualizar.Parameters.AddWithValue("@crear", puedeCrear);
@@ -496,6 +521,7 @@ WHERE IdPerfilPantallaAcceso = @id", connection, transaction);
                         actualizar.Parameters.AddWithValue("@eliminar", puedeEliminar);
                         actualizar.Parameters.AddWithValue("@exportar", puedeExportar);
                         actualizar.Parameters.AddWithValue("@activo", activo);
+                        actualizar.Parameters.AddWithValue("@otorgadoPor", otorgadoPorParametro);
                         actualizar.Parameters.AddWithValue("@id", idAcceso);
                         actualizar.ExecuteNonQuery();
                     }

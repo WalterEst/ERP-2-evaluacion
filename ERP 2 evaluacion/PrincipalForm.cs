@@ -23,7 +23,7 @@ namespace ERP_2_evaluacion
         private readonly Label _lblHeroTotalPantallas = new() { AutoSize = true };
         private readonly Label _lblHeroTotalSecciones = new() { AutoSize = true };
         private readonly Button _btnIrUsuarios = new();
-        private readonly Button _btnIrPerfiles = new();
+        private readonly Button _btnIrRoles = new();
         private readonly Button _btnIrAccesos = new();
         private readonly Button _btnIrProductos = new();
         private readonly Button _btnIrInventario = new();
@@ -476,7 +476,7 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
             };
 
             ConfigurarBotonAccion(_btnIrUsuarios, "Usuarios", "Gestiona cuentas y credenciales", "USUARIOS");
-            ConfigurarBotonAccion(_btnIrPerfiles, "Perfiles", "Administra roles y perfiles", "PERFILES");
+            ConfigurarBotonAccion(_btnIrRoles, "Roles", "Administra roles y permisos", "ROLES");
             ConfigurarBotonAccion(_btnIrAccesos, "Accesos", "Configura permisos por pantalla", "ACCESOS");
             ConfigurarBotonAccion(_btnIrProductos, "Productos", "Catálogo y precios de productos", "PRODUCTOS");
             ConfigurarBotonAccion(_btnIrBodegas, "Bodegas", "Organiza tus almacenes", "BODEGAS");
@@ -485,7 +485,7 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
             ConfigurarBotonAccion(_btnIrVentas, "Ventas", "Registra ventas rápidamente", "VENTAS");
 
             panel.Controls.Add(_btnIrUsuarios);
-            panel.Controls.Add(_btnIrPerfiles);
+            panel.Controls.Add(_btnIrRoles);
             panel.Controls.Add(_btnIrAccesos);
             panel.Controls.Add(_btnIrProductos);
             panel.Controls.Add(_btnIrBodegas);
@@ -527,8 +527,8 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
             Form? formulario = codigoPantalla switch
             {
                 "USUARIOS" => new UsuariosForm(_usuarioPrivilegiado, _nombreUsuario),
-                "PERFILES" => new PerfilesForm(),
-                "ACCESOS" => new AccesosForm(),
+                "ROLES" or "PERFILES" => new RolesForm(),
+                "ACCESOS" => new AccesosForm(_nombreUsuario),
                 "PRODUCTOS" => new ProductosForm(),
                 "BODEGAS" => new BodegasForm(),
                 "INVENTARIO" => new InventarioForm(_idUsuario),
@@ -551,7 +551,9 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
         private void ActualizarEstadoAcciones()
         {
             bool tieneUsuarios = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "USUARIOS", StringComparison.OrdinalIgnoreCase));
-            bool tienePerfiles = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "PERFILES", StringComparison.OrdinalIgnoreCase));
+            bool tieneRoles = _pantallasDisponibles.Any(p =>
+                string.Equals(p.Codigo, "ROLES", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(p.Codigo, "PERFILES", StringComparison.OrdinalIgnoreCase));
             bool tieneAccesos = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "ACCESOS", StringComparison.OrdinalIgnoreCase));
             bool tieneProductos = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "PRODUCTOS", StringComparison.OrdinalIgnoreCase));
             bool tieneBodegas = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "BODEGAS", StringComparison.OrdinalIgnoreCase));
@@ -560,7 +562,7 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
             bool tieneVentas = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "VENTAS", StringComparison.OrdinalIgnoreCase));
 
             _btnIrUsuarios.Enabled = tieneUsuarios;
-            _btnIrPerfiles.Enabled = tienePerfiles;
+            _btnIrRoles.Enabled = tieneRoles;
             _btnIrAccesos.Enabled = tieneAccesos;
             _btnIrProductos.Enabled = tieneProductos;
             _btnIrBodegas.Enabled = tieneBodegas;
