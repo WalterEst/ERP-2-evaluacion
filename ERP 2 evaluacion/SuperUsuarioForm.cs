@@ -32,7 +32,7 @@ public class SuperUsuarioForm : Form
         new("LOGIN", "Login", "LoginForm", null, 0),
         new("PRINCIPAL", "Principal", "PrincipalForm", null, 1),
         new("USUARIOS", "Usuarios", "UsuariosForm", "PRINCIPAL", 1),
-        new("PERFILES", "Perfiles", "PerfilesForm", "PRINCIPAL", 2),
+        new("ROLES", "Roles", "RolesForm", "PRINCIPAL", 2),
         new("ACCESOS", "Accesos", "AccesosForm", "PRINCIPAL", 3)
     };
 

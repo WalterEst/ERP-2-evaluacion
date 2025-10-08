@@ -7,7 +7,7 @@
     <Compile Update="LoginForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="PerfilesForm.cs">
+    <Compile Update="RolesForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="PrincipalForm.cs">

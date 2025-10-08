@@ -1,5 +1,5 @@
 /* ==========================================================
-   Seed ERP - Pantallas, Perfiles, Usuario admin, Permisos,
+   Seed ERP - Pantallas, Roles, Usuario admin, Permisos,
    Catálogos base e Inventario inicial (sin MERGE/CTE)
    Ejecutar completo en un solo batch
    ========================================================== */
@@ -35,10 +35,20 @@ BEGIN TRY
         VALUES ('USUARIOS', N'Usuarios', N'UsuariosForm', @IdPantallaPrincipal, 1, N'SEED');
     END;
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'PERFILES')
+    IF EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'PERFILES')
+       AND NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'ROLES')
+    BEGIN
+        UPDATE dbo.Pantalla
+           SET Codigo = 'ROLES',
+               NombrePantalla = N'Roles',
+               Ruta = 'RolesForm'
+         WHERE Codigo = 'PERFILES';
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'ROLES')
     BEGIN
         INSERT INTO dbo.Pantalla (Codigo, NombrePantalla, Ruta, IdPadre, Orden, CreadoPor)
-        VALUES ('PERFILES', N'Perfiles', N'PerfilesForm', @IdPantallaPrincipal, 2, N'SEED');
+        VALUES ('ROLES', N'Roles', N'RolesForm', @IdPantallaPrincipal, 2, N'SEED');
     END;
 
     IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'ACCESOS')
@@ -78,7 +88,7 @@ BEGIN TRY
     END;
 
     /*--------------------------------------------------------
-      2) Perfiles
+      2) Roles
     --------------------------------------------------------*/
     IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Codigo = 'SUPERADMIN')
     BEGIN
@@ -194,7 +204,7 @@ BEGIN TRY
         INSERT INTO @PermisosAdmin VALUES
             (N'PRINCIPAL', 1, 0, 0, 0, 0),
             (N'USUARIOS',  1, 1, 1, 1, 1),
-            (N'PERFILES',  1, 1, 1, 1, 1),
+            (N'ROLES',     1, 1, 1, 1, 1),
             (N'ACCESOS',   1, 1, 1, 1, 1),
             (N'BODEGAS',   1, 1, 1, 1, 1),
             (N'PRODUCTOS', 1, 1, 1, 1, 1),
