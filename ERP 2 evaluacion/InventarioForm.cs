@@ -32,6 +32,11 @@ public class InventarioForm : Form
 
     private DataTable? _inventario;
 
+    // --- NUEVO: referencias para responsividad ---
+    private Panel? _card;
+    private TableLayoutPanel? _root;
+    private FlowLayoutPanel? _botones;
+
     public InventarioForm(int? idUsuario = null)
     {
         _idUsuario = idUsuario;
@@ -39,6 +44,7 @@ public class InventarioForm : Form
         Text = "Inventario";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1280, 840);
+        MinimumSize = new Size(900, 600); // evita romper layout en ventanas muy pequeñas
 
         UiTheme.ApplyMinimalStyle(this);
 
@@ -57,6 +63,10 @@ public class InventarioForm : Form
 
         var layout = CrearLayout();
         Controls.Add(layout);
+
+        // Responsividad
+        Resize += (_, _) => ApplyResponsivePadding();
+        Shown += (_, _) => ApplyResponsivePadding();
 
         Load += InventarioForm_Load;
         _cmbBodega.SelectedIndexChanged += (_, _) => CargarInventario();
@@ -85,16 +95,17 @@ public class InventarioForm : Form
 
     private Control CrearLayout()
     {
-        var root = new TableLayoutPanel
+        _root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 1
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        _root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        var card = UiTheme.CreateCardPanel();
-        card.Padding = new Padding(32, 32, 32, 24);
+        _card = UiTheme.CreateCardPanel();
+        _card.Dock = DockStyle.Fill;                 // Ocupa todo
+        _card.Padding = new Padding(32, 32, 32, 24); // Se recalcula dinámicamente
 
         var content = new TableLayoutPanel
         {
@@ -130,20 +141,20 @@ public class InventarioForm : Form
             FlowDirection = FlowDirection.LeftToRight,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            WrapContents = false,
+            WrapContents = true,                 // puede saltar línea en espacios angostos
             Margin = new Padding(0, 16, 0, 0)
         };
         resumenPanel.Controls.Add(_lblResumen);
 
-        var botones = new FlowLayoutPanel
+        _botones = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.LeftToRight,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            WrapContents = false,
+            WrapContents = true,                 // responsive: hace wrap cuando no cabe
             Margin = new Padding(0, 16, 0, 0)
         };
-        botones.Controls.AddRange(new Control[] { _btnEntrada, _btnSalida, _btnAjuste });
+        _botones.Controls.AddRange(new Control[] { _btnEntrada, _btnSalida, _btnAjuste });
 
         _lblMensaje.Margin = new Padding(0, 16, 0, 0);
         _grid.Margin = new Padding(0, 24, 0, 0);
@@ -151,15 +162,43 @@ public class InventarioForm : Form
 
         content.Controls.Add(header, 0, 0);
         content.Controls.Add(resumenPanel, 0, 1);
-        content.Controls.Add(botones, 0, 2);
+        content.Controls.Add(_botones, 0, 2);
         content.Controls.Add(_lblMensaje, 0, 3);
         content.Controls.Add(_grid, 0, 4);
 
-        card.Controls.Add(content);
+        _card.Controls.Add(content);
+        _root.Controls.Add(_card, 0, 0);
 
-        root.Controls.Add(card, 0, 0);
+        return _root;
+    }
 
-        return root;
+    // --- NUEVO: padding y gaps proporcionales al tamaño de la ventana ---
+    private void ApplyResponsivePadding()
+    {
+        if (_card == null) return;
+
+        // 4% del ancho y 3% del alto como padding, con mínimos razonables
+        int padX = Math.Max(24, (int)(ClientSize.Width * 0.04));
+        int padY = Math.Max(20, (int)(ClientSize.Height * 0.03));
+
+        _card.Padding = new Padding(padX, padY, padX, Math.Max(16, padY - 8));
+
+        // separaciones verticales adaptativas
+        int gapYSmall = Math.Max(10, (int)(ClientSize.Height * 0.015)); // ~1.5%
+        int gapYMedium = Math.Max(16, (int)(ClientSize.Height * 0.02));  // ~2%
+
+        _lblMensaje.Margin = new Padding(0, gapYSmall, 0, 0);
+        _grid.Margin = new Padding(0, gapYMedium, 0, 0);
+
+        // Botonera: espacio entre botones según ancho
+        if (_botones is not null)
+        {
+            int inter = Math.Max(8, (int)(ClientSize.Width * 0.008)); // ~0.8%
+            foreach (Control c in _botones.Controls)
+            {
+                c.Margin = new Padding(0, 0, inter, 8); // un pequeño bottom para cuando haga wrap
+            }
+        }
     }
 
     private void CargarBodegas()
@@ -367,6 +406,8 @@ VALUES (@inventario, @tipo, @cantidad, @motivo, @referencia, @usuario);", connec
         private readonly bool _esAjuste;
         private readonly decimal _stockActual;
 
+        private readonly TableLayoutPanel _layout; // para ajustar padding dinámico
+
         public decimal Cantidad => _nudCantidad.Value;
         public decimal NuevoStock => _esAjuste ? _nudCantidad.Value : _stockActual;
         public string Motivo => _txtMotivo.Text.Trim();
@@ -386,7 +427,8 @@ VALUES (@inventario, @tipo, @cantidad, @motivo, @referencia, @usuario);", connec
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
-            Size = new Size(420, 280);
+            Size = new Size(460, 280);
+            MinimumSize = new Size(420, 260);
 
             UiTheme.ApplyMinimalStyle(this);
 
@@ -438,7 +480,7 @@ VALUES (@inventario, @tipo, @cantidad, @motivo, @referencia, @usuario);", connec
             botones.Controls.Add(btnAceptar);
             botones.Controls.Add(btnCancelar);
 
-            var layout = new TableLayoutPanel
+            _layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
@@ -446,18 +488,18 @@ VALUES (@inventario, @tipo, @cantidad, @motivo, @referencia, @usuario);", connec
             };
             for (int i = 0; i < 7; i++)
             {
-                layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                _layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             }
 
-            layout.Controls.Add(lblProducto, 0, 0);
-            layout.Controls.Add(lblActual, 0, 1);
-            layout.Controls.Add(lblCantidad, 0, 2);
-            layout.Controls.Add(_nudCantidad, 0, 3);
-            layout.Controls.Add(new Label { Text = "Motivo", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 12, 0, 0) }, 0, 4);
-            layout.Controls.Add(_txtMotivo, 0, 5);
-            layout.Controls.Add(botones, 0, 6);
+            _layout.Controls.Add(lblProducto, 0, 0);
+            _layout.Controls.Add(lblActual, 0, 1);
+            _layout.Controls.Add(lblCantidad, 0, 2);
+            _layout.Controls.Add(_nudCantidad, 0, 3);
+            _layout.Controls.Add(new Label { Text = "Motivo", AutoSize = true, ForeColor = UiTheme.MutedTextColor, Margin = new Padding(0, 12, 0, 0) }, 0, 4);
+            _layout.Controls.Add(_txtMotivo, 0, 5);
+            _layout.Controls.Add(botones, 0, 6);
 
-            Controls.Add(layout);
+            Controls.Add(_layout);
 
             AcceptButton = btnAceptar;
             CancelButton = btnCancelar;
@@ -475,6 +517,22 @@ VALUES (@inventario, @tipo, @cantidad, @motivo, @referencia, @usuario);", connec
                     DialogResult = DialogResult.None;
                 }
             };
+
+            // Responsividad
+            Resize += (_, _) => ApplyResponsivePadding();
+            Shown += (_, _) => ApplyResponsivePadding();
+        }
+
+        private void ApplyResponsivePadding()
+        {
+            int padX = Math.Max(16, (int)(ClientSize.Width * 0.06)); // 6% del ancho
+            int padY = Math.Max(12, (int)(ClientSize.Height * 0.06)); // 6% del alto
+
+            _layout.Padding = new Padding(padX, padY, padX, padY - 4);
+
+            // separación vertical entre bloques
+            int gapY = Math.Max(8, (int)(ClientSize.Height * 0.04));
+            _txtMotivo.Margin = new Padding(0, gapY, 0, 0);
         }
     }
 }
