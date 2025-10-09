@@ -1,630 +1,338 @@
-/* ==========================================================
-   Seed ERP - Pantallas, Roles, Usuario admin, Permisos,
-   Catálogos base e Inventario inicial (sin MERGE/CTE)
-   Ejecutar completo en un solo batch
-   ========================================================== */
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
 
-SET NOCOUNT ON;
-SET XACT_ABORT ON;
+IF OBJECT_ID('dbo.VentaDetalle', 'U') IS NOT NULL DROP TABLE dbo.VentaDetalle;
+IF OBJECT_ID('dbo.Venta', 'U') IS NOT NULL DROP TABLE dbo.Venta;
+IF OBJECT_ID('dbo.MovimientoInventario', 'U') IS NOT NULL DROP TABLE dbo.MovimientoInventario;
+IF OBJECT_ID('dbo.Inventario', 'U') IS NOT NULL DROP TABLE dbo.Inventario;
+IF OBJECT_ID('dbo.Producto', 'U') IS NOT NULL DROP TABLE dbo.Producto;
+IF OBJECT_ID('dbo.CategoriaProducto', 'U') IS NOT NULL DROP TABLE dbo.CategoriaProducto;
+IF OBJECT_ID('dbo.Cliente', 'U') IS NOT NULL DROP TABLE dbo.Cliente;
+IF OBJECT_ID('dbo.Bodega', 'U') IS NOT NULL DROP TABLE dbo.Bodega;
+IF OBJECT_ID('dbo.vw_UsuarioPermisoPantalla', 'V') IS NOT NULL DROP VIEW dbo.vw_UsuarioPermisoPantalla;
+IF OBJECT_ID('dbo.TR_PerfilPantallaAcceso_Normalizar', 'TR') IS NOT NULL DROP TRIGGER dbo.TR_PerfilPantallaAcceso_Normalizar;
+IF OBJECT_ID('dbo.PerfilPantallaAcceso', 'U') IS NOT NULL DROP TABLE dbo.PerfilPantallaAcceso;
+IF OBJECT_ID('dbo.NivelPermiso', 'U') IS NOT NULL DROP TABLE dbo.NivelPermiso;
+IF OBJECT_ID('dbo.UsuarioPerfil', 'U') IS NOT NULL DROP TABLE dbo.UsuarioPerfil;
+IF OBJECT_ID('dbo.Pantalla', 'U') IS NOT NULL DROP TABLE dbo.Pantalla;
+IF OBJECT_ID('dbo.Perfil', 'U') IS NOT NULL DROP TABLE dbo.Perfil;
+IF OBJECT_ID('dbo.Usuario', 'U') IS NOT NULL DROP TABLE dbo.Usuario;
+GO
 
-BEGIN TRY
-    BEGIN TRAN;
+CREATE TABLE dbo.Usuario
+(
+    IdUsuario INT IDENTITY(1,1) PRIMARY KEY,
+    NombreUsuario NVARCHAR(40) NOT NULL UNIQUE,
+    Correo NVARCHAR(80) NOT NULL UNIQUE,
+    Clave VARCHAR(50) NOT NULL,
+    NombreCompleto NVARCHAR(80) NOT NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_Usuario_Activo DEFAULT(1),
+    UltimoIngreso DATETIME NULL,
+    FechaCreacion DATE NOT NULL CONSTRAINT DF_Usuario_FechaCreacion DEFAULT (GETDATE())
+);
+GO
 
-    DECLARE @Ahora DATETIME2 = SYSDATETIME();
+ALTER TABLE dbo.Usuario
+ADD CONSTRAINT CK_Usuario_ClaveLength CHECK (LEN(Clave) >= 8);
+GO
 
-    /*--------------------------------------------------------
-      1) Pantallas base
-    --------------------------------------------------------*/
-    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'LOGIN')
-    BEGIN
-        INSERT INTO dbo.Pantalla (Codigo, NombrePantalla, Ruta, Orden, CreadoPor)
-        VALUES ('LOGIN', N'Login', N'LoginForm', 0, N'SEED');
-    END;
+CREATE TABLE dbo.Perfil
+(
+    IdPerfil INT IDENTITY(1,1) PRIMARY KEY,
+    NombrePerfil VARCHAR(30) NOT NULL UNIQUE,
+    Codigo NVARCHAR(50) NOT NULL UNIQUE,
+    Descripcion TEXT NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_Perfil_Activo DEFAULT(1),
+    FechaCreacion DATETIME NOT NULL CONSTRAINT DF_Perfil_FechaCreacion DEFAULT (GETDATE())
+);
+GO
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'PRINCIPAL')
-    BEGIN
-        INSERT INTO dbo.Pantalla (Codigo, NombrePantalla, Ruta, Orden, CreadoPor)
-        VALUES ('PRINCIPAL', N'Principal', N'PrincipalForm', 1, N'SEED');
-    END;
+-- Crear Pantalla SIN el FK auto-referenciado (lo agregamos después con NO ACTION)
+CREATE TABLE dbo.Pantalla
+(
+    IdPantalla INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo NVARCHAR(50) NOT NULL UNIQUE,
+    NombrePantalla NVARCHAR(80) NOT NULL,
+    Ruta NVARCHAR(200) NOT NULL,
+    IdPadre INT NULL,
+    Icono NVARCHAR(60) NULL,
+    Orden INT NOT NULL CONSTRAINT DF_Pantalla_Orden DEFAULT(0),
+    Activo BIT NOT NULL CONSTRAINT DF_Pantalla_Activo DEFAULT(1),
+    FechaCreacion DATETIME NOT NULL CONSTRAINT DF_Pantalla_FechaCreacion DEFAULT(GETDATE()),
+    CreadoPor NVARCHAR(100) NULL,
+    CONSTRAINT UQ_Pantalla_Ruta UNIQUE (Ruta)
+);
+GO
 
-    DECLARE @IdPantallaPrincipal INT = (SELECT TOP (1) IdPantalla FROM dbo.Pantalla WHERE Codigo = 'PRINCIPAL');
+CREATE TABLE dbo.NivelPermiso
+(
+    IdNivelPermiso INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo NVARCHAR(40) NOT NULL UNIQUE,
+    Nombre NVARCHAR(120) NOT NULL,
+    Descripcion NVARCHAR(400) NULL,
+    PuedeVer BIT NOT NULL,
+    PuedeCrear BIT NOT NULL,
+    PuedeEditar BIT NOT NULL,
+    PuedeEliminar BIT NOT NULL,
+    PuedeExportar BIT NOT NULL,
+    EsPersonalizado BIT NOT NULL CONSTRAINT DF_NivelPermiso_Personalizado DEFAULT(0),
+    FechaCreacion DATETIME2 NOT NULL CONSTRAINT DF_NivelPermiso_FechaCreacion DEFAULT(SYSDATETIME()),
+    CONSTRAINT CK_NivelPermiso_PermisosValidos
+        CHECK (CASE WHEN PuedeVer = 0 THEN
+                        CASE WHEN PuedeCrear = 0 AND PuedeEditar = 0 AND PuedeEliminar = 0 AND PuedeExportar = 0 THEN 1 ELSE 0 END
+                    ELSE 1 END = 1)
+);
+GO
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'USUARIOS')
-    BEGIN
-        INSERT INTO dbo.Pantalla (Codigo, NombrePantalla, Ruta, IdPadre, Orden, CreadoPor)
-        VALUES ('USUARIOS', N'Usuarios', N'UsuariosForm', @IdPantallaPrincipal, 1, N'SEED');
-    END;
+ALTER TABLE dbo.NivelPermiso
+ADD CONSTRAINT UQ_NivelPermiso_Combinacion UNIQUE (PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar);
+GO
 
-    IF EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'PERFILES')
-       AND NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'ROLES')
-    BEGIN
-        UPDATE dbo.Pantalla
-           SET Codigo = 'ROLES',
-               NombrePantalla = N'Roles',
-               Ruta = 'RolesForm'
-         WHERE Codigo = 'PERFILES';
-    END;
+CREATE TABLE dbo.UsuarioPerfil
+(
+    IdUsuarioPerfil INT IDENTITY(1,1) PRIMARY KEY,
+    IdUsuario INT NOT NULL,
+    IdPerfil INT NOT NULL,
+    FechaAsignacion DATETIME NOT NULL CONSTRAINT DF_UsuarioPerfil_Fecha DEFAULT (GETDATE()),
+    AsignadoPor NVARCHAR(100) NULL,
+    CONSTRAINT UQ_UsuarioPerfil UNIQUE(IdUsuario, IdPerfil),
+    CONSTRAINT FK_UsuarioPerfil_Usuario FOREIGN KEY(IdUsuario) REFERENCES dbo.Usuario(IdUsuario) ON DELETE CASCADE,
+    CONSTRAINT FK_UsuarioPerfil_Perfil FOREIGN KEY(IdPerfil) REFERENCES dbo.Perfil(IdPerfil) ON DELETE CASCADE
+);
+GO
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'ROLES')
-    BEGIN
-        INSERT INTO dbo.Pantalla (Codigo, NombrePantalla, Ruta, IdPadre, Orden, CreadoPor)
-        VALUES ('ROLES', N'Roles', N'RolesForm', @IdPantallaPrincipal, 2, N'SEED');
-    END;
+CREATE INDEX IX_UsuarioPerfil_Usuario ON dbo.UsuarioPerfil(IdUsuario);
+GO
+CREATE INDEX IX_UsuarioPerfil_Perfil ON dbo.UsuarioPerfil(IdPerfil);
+GO
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'ACCESOS')
-    BEGIN
-        INSERT INTO dbo.Pantalla (Codigo, NombrePantalla, Ruta, IdPadre, Orden, CreadoPor)
-        VALUES ('ACCESOS', N'Accesos', N'AccesosForm', @IdPantallaPrincipal, 3, N'SEED');
-    END;
+CREATE TABLE dbo.PerfilPantallaAcceso
+(
+    IdPerfilPantallaAcceso INT IDENTITY(1,1) PRIMARY KEY,
+    IdPerfil INT NOT NULL,
+    IdPantalla INT NOT NULL,
+    IdNivelPermiso INT NULL,
+    PuedeVer BIT NOT NULL CONSTRAINT DF_PPA_Ver DEFAULT(0),
+    PuedeCrear BIT NOT NULL CONSTRAINT DF_PPA_Crear DEFAULT(0),
+    PuedeEditar BIT NOT NULL CONSTRAINT DF_PPA_Editar DEFAULT(0),
+    PuedeEliminar BIT NOT NULL CONSTRAINT DF_PPA_Eliminar DEFAULT(0),
+    PuedeExportar BIT NOT NULL CONSTRAINT DF_PPA_Exportar DEFAULT(0),
+    Activo BIT NOT NULL CONSTRAINT DF_PPA_Activo DEFAULT(1),
+    FechaOtorgado DATETIME2 NOT NULL CONSTRAINT DF_PPA_Fecha DEFAULT (SYSDATETIME()),
+    OtorgadoPor NVARCHAR(40) NULL,
+    CONSTRAINT UQ_PerfilPantalla UNIQUE(IdPerfil, IdPantalla),
+    -- SOLO una cascada: desde Pantalla
+    CONSTRAINT FK_PPA_Perfil   FOREIGN KEY(IdPerfil)   REFERENCES dbo.Perfil(IdPerfil)        ON DELETE NO ACTION,
+    CONSTRAINT FK_PPA_Pantalla FOREIGN KEY(IdPantalla) REFERENCES dbo.Pantalla(IdPantalla)    ON DELETE CASCADE,
+    CONSTRAINT FK_PPA_Nivel    FOREIGN KEY(IdNivelPermiso) REFERENCES dbo.NivelPermiso(IdNivelPermiso),
+    CONSTRAINT CK_PPA_PermisosCoherentes
+        CHECK (CASE WHEN PuedeVer = 0 THEN
+                        CASE WHEN PuedeCrear = 0 AND PuedeEditar = 0 AND PuedeEliminar = 0 AND PuedeExportar = 0 AND Activo = 0
+                             THEN 1 ELSE 0 END
+                    ELSE 1 END = 1)
+);
+GO
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'BODEGAS')
-    BEGIN
-        INSERT INTO dbo.Pantalla (Codigo, NombrePantalla, Ruta, IdPadre, Orden, CreadoPor)
-        VALUES ('BODEGAS', N'Bodegas', N'BodegasForm', @IdPantallaPrincipal, 4, N'SEED');
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'PRODUCTOS')
-    BEGIN
-        INSERT INTO dbo.Pantalla (Codigo, NombrePantalla, Ruta, IdPadre, Orden, CreadoPor)
-        VALUES ('PRODUCTOS', N'Productos', N'ProductosForm', @IdPantallaPrincipal, 5, N'SEED');
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'INVENTARIO')
-    BEGIN
-        INSERT INTO dbo.Pantalla (Codigo, NombrePantalla, Ruta, IdPadre, Orden, CreadoPor)
-        VALUES ('INVENTARIO', N'Inventario', N'InventarioForm', @IdPantallaPrincipal, 6, N'SEED');
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'CLIENTES')
-    BEGIN
-        INSERT INTO dbo.Pantalla (Codigo, NombrePantalla, Ruta, IdPadre, Orden, CreadoPor)
-        VALUES ('CLIENTES', N'Clientes', N'ClientesForm', @IdPantallaPrincipal, 7, N'SEED');
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.Pantalla WHERE Codigo = 'VENTAS')
-    BEGIN
-        INSERT INTO dbo.Pantalla (Codigo, NombrePantalla, Ruta, IdPadre, Orden, CreadoPor)
-        VALUES ('VENTAS', N'Ventas', N'VentasForm', @IdPantallaPrincipal, 8, N'SEED');
-    END;
-
-    /*--------------------------------------------------------
-      1b) Niveles de permiso base
-    --------------------------------------------------------*/
-    IF EXISTS (SELECT 1 FROM dbo.NivelPermiso WHERE Codigo = 'SIN_ACCESO')
-    BEGIN
-        UPDATE dbo.NivelPermiso
-           SET Nombre = N'Sin acceso',
-               Descripcion = N'Deshabilita por completo la pantalla para el rol seleccionado.',
-               PuedeVer = 0,
-               PuedeCrear = 0,
-               PuedeEditar = 0,
-               PuedeEliminar = 0,
-               PuedeExportar = 0,
-               EsPersonalizado = 0
-         WHERE Codigo = 'SIN_ACCESO';
+ALTER TABLE dbo.PerfilPantallaAcceso
+ADD CodigoNivelCalculado AS (
+    CASE
+        WHEN PuedeVer = 0 THEN 'SIN_ACCESO'
+        WHEN PuedeVer = 1 AND PuedeCrear = 0 AND PuedeEditar = 0 AND PuedeEliminar = 0 AND PuedeExportar = 0 THEN 'LECTURA'
+        WHEN PuedeVer = 1 AND PuedeCrear = 1 AND PuedeEditar = 1 AND PuedeEliminar = 1 AND PuedeExportar = 1 THEN 'ADMINISTRACION'
+        WHEN PuedeVer = 1 AND PuedeCrear = 1 AND PuedeEditar = 1 AND PuedeEliminar = 0 AND PuedeExportar = 1 THEN 'COLABORACION'
+        WHEN PuedeVer = 1 AND PuedeCrear = 1 AND PuedeEditar = 0 AND PuedeEliminar = 0 AND PuedeExportar = 1 THEN 'OPERACION'
+        ELSE 'PERSONALIZADO'
     END
-    ELSE
-    BEGIN
-        INSERT INTO dbo.NivelPermiso (Codigo, Nombre, Descripcion, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, EsPersonalizado)
-        VALUES ('SIN_ACCESO', N'Sin acceso', N'Deshabilita por completo la pantalla para el rol seleccionado.', 0, 0, 0, 0, 0, 0);
-    END;
+) PERSISTED;
+GO
 
-    IF EXISTS (SELECT 1 FROM dbo.NivelPermiso WHERE Codigo = 'LECTURA')
-    BEGIN
-        UPDATE dbo.NivelPermiso
-           SET Nombre = N'Lectura',
-               Descripcion = N'Permite consultar la información sin realizar modificaciones.',
-               PuedeVer = 1,
-               PuedeCrear = 0,
-               PuedeEditar = 0,
-               PuedeEliminar = 0,
-               PuedeExportar = 0,
-               EsPersonalizado = 0
-         WHERE Codigo = 'LECTURA';
-    END
-    ELSE
-    BEGIN
-        INSERT INTO dbo.NivelPermiso (Codigo, Nombre, Descripcion, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, EsPersonalizado)
-        VALUES ('LECTURA', N'Lectura', N'Permite consultar la información sin realizar modificaciones.', 1, 0, 0, 0, 0, 0);
-    END;
+CREATE INDEX IX_PerfilPantallaAcceso_PerfilPantalla
+    ON dbo.PerfilPantallaAcceso(IdPerfil, IdPantalla)
+    INCLUDE (PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo);
+GO
 
-    IF EXISTS (SELECT 1 FROM dbo.NivelPermiso WHERE Codigo = 'OPERACION')
-    BEGIN
-        UPDATE dbo.NivelPermiso
-           SET Nombre = N'Operación',
-               Descripcion = N'Permite crear y procesar transacciones operativas sin realizar ediciones avanzadas ni eliminaciones.',
-               PuedeVer = 1,
-               PuedeCrear = 1,
-               PuedeEditar = 0,
-               PuedeEliminar = 0,
-               PuedeExportar = 1,
-               EsPersonalizado = 0
-         WHERE Codigo = 'OPERACION';
-    END
-    ELSE
-    BEGIN
-        INSERT INTO dbo.NivelPermiso (Codigo, Nombre, Descripcion, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, EsPersonalizado)
-        VALUES ('OPERACION', N'Operación', N'Permite crear y procesar transacciones operativas sin realizar ediciones avanzadas ni eliminaciones.', 1, 1, 0, 0, 1, 0);
-    END;
+CREATE INDEX IX_PerfilPantallaAcceso_Pantalla
+    ON dbo.PerfilPantallaAcceso(IdPantalla)
+    INCLUDE (IdPerfil, PuedeVer, Activo);
+GO
 
-    IF EXISTS (SELECT 1 FROM dbo.NivelPermiso WHERE Codigo = 'COLABORACION')
-    BEGIN
-        UPDATE dbo.NivelPermiso
-           SET Nombre = N'Colaboración',
-               Descripcion = N'Habilita crear, editar y exportar datos sin permitir eliminaciones.',
-               PuedeVer = 1,
-               PuedeCrear = 1,
-               PuedeEditar = 1,
-               PuedeEliminar = 0,
-               PuedeExportar = 1,
-               EsPersonalizado = 0
-         WHERE Codigo = 'COLABORACION';
-    END
-    ELSE
-    BEGIN
-        INSERT INTO dbo.NivelPermiso (Codigo, Nombre, Descripcion, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, EsPersonalizado)
-        VALUES ('COLABORACION', N'Colaboración', N'Habilita crear, editar y exportar datos sin permitir eliminaciones.', 1, 1, 1, 0, 1, 0);
-    END;
+-- AHORA sí: agregar el auto-FK de Pantalla SIN acciones en cascada (evita 1785)
+ALTER TABLE dbo.Pantalla
+  ADD CONSTRAINT FK_Pantalla_Padre
+  FOREIGN KEY (IdPadre)
+  REFERENCES dbo.Pantalla(IdPantalla)
+  ON DELETE NO ACTION
+  ON UPDATE NO ACTION;
+GO
 
-    IF EXISTS (SELECT 1 FROM dbo.NivelPermiso WHERE Codigo = 'ADMINISTRACION')
-    BEGIN
-        UPDATE dbo.NivelPermiso
-           SET Nombre = N'Administración',
-               Descripcion = N'Otorga todos los permisos disponibles, incluyendo eliminar registros.',
-               PuedeVer = 1,
-               PuedeCrear = 1,
-               PuedeEditar = 1,
-               PuedeEliminar = 1,
-               PuedeExportar = 1,
-               EsPersonalizado = 0
-         WHERE Codigo = 'ADMINISTRACION';
-    END
-    ELSE
-    BEGIN
-        INSERT INTO dbo.NivelPermiso (Codigo, Nombre, Descripcion, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, EsPersonalizado)
-        VALUES ('ADMINISTRACION', N'Administración', N'Otorga todos los permisos disponibles, incluyendo eliminar registros.', 1, 1, 1, 1, 1, 0);
-    END;
+CREATE TABLE dbo.Bodega
+(
+    IdBodega INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo NVARCHAR(30) NOT NULL UNIQUE,
+    Nombre NVARCHAR(120) NOT NULL,
+    Ubicacion NVARCHAR(160) NULL,
+    Encargado NVARCHAR(120) NULL,
+    Descripcion NVARCHAR(300) NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_Bodega_Activo DEFAULT(1),
+    FechaCreacion DATETIME NOT NULL CONSTRAINT DF_Bodega_FechaCreacion DEFAULT(GETDATE())
+);
+GO
 
-    /*--------------------------------------------------------
-      2) Roles
-    --------------------------------------------------------*/
-    IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Codigo = 'SUPERADMIN')
-    BEGIN
-        INSERT INTO dbo.Perfil (NombrePerfil, Codigo, Descripcion, Activo)
-        VALUES (N'Super Administrador', 'SUPERADMIN', N'Control total del sistema', 1);
-    END;
+CREATE TABLE dbo.CategoriaProducto
+(
+    IdCategoria INT IDENTITY(1,1) PRIMARY KEY,
+    Nombre NVARCHAR(120) NOT NULL UNIQUE,
+    Descripcion NVARCHAR(300) NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_CategoriaProducto_Activo DEFAULT(1),
+    FechaCreacion DATETIME NOT NULL CONSTRAINT DF_CategoriaProducto_FechaCreacion DEFAULT(GETDATE())
+);
+GO
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Codigo = 'ADMIN')
-    BEGIN
-        INSERT INTO dbo.Perfil (NombrePerfil, Codigo, Descripcion, Activo)
-        VALUES (N'Administrador', 'ADMIN', N'Administrador funcional con permisos ampliados', 1);
-    END;
+CREATE TABLE dbo.Producto
+(
+    IdProducto INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo NVARCHAR(50) NOT NULL UNIQUE,
+    Nombre NVARCHAR(160) NOT NULL,
+    Descripcion NVARCHAR(400) NULL,
+    IdCategoria INT NULL,
+    PrecioCosto DECIMAL(18,2) NOT NULL,
+    PrecioVenta DECIMAL(18,2) NOT NULL,
+    StockMinimo DECIMAL(18,2) NOT NULL CONSTRAINT DF_Producto_StockMinimo DEFAULT(0),
+    StockMaximo DECIMAL(18,2) NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_Producto_Activo DEFAULT(1),
+    FechaCreacion DATETIME NOT NULL CONSTRAINT DF_Producto_FechaCreacion DEFAULT(GETDATE()),
+    CONSTRAINT FK_Producto_Categoria FOREIGN KEY(IdCategoria) REFERENCES dbo.CategoriaProducto(IdCategoria)
+);
+GO
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Codigo = 'BODEGUERO')
-    BEGIN
-        INSERT INTO dbo.Perfil (NombrePerfil, Codigo, Descripcion, Activo)
-        VALUES (N'Encargado de Bodega', 'BODEGUERO', N'Gestiona bodegas, productos e inventario', 1);
-    END;
+CREATE TABLE dbo.Cliente
+(
+    IdCliente INT IDENTITY(1,1) PRIMARY KEY,
+    NombreCompleto NVARCHAR(160) NOT NULL,
+    Identificacion NVARCHAR(40) NULL,
+    TipoDocumento NVARCHAR(30) NULL,
+    Correo NVARCHAR(120) NULL,
+    Telefono NVARCHAR(40) NULL,
+    Direccion NVARCHAR(300) NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_Cliente_Activo DEFAULT(1),
+    FechaCreacion DATETIME NOT NULL CONSTRAINT DF_Cliente_FechaCreacion DEFAULT(GETDATE())
+);
+GO
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Codigo = 'VENDEDOR')
-    BEGIN
-        INSERT INTO dbo.Perfil (NombrePerfil, Codigo, Descripcion, Activo)
-        VALUES (N'Vendedor', 'VENDEDOR', N'Registra ventas y gestiona clientes', 1);
-    END;
+CREATE TABLE dbo.Inventario
+(
+    IdInventario INT IDENTITY(1,1) PRIMARY KEY,
+    IdProducto INT NOT NULL,
+    IdBodega INT NOT NULL,
+    StockActual DECIMAL(18,2) NOT NULL CONSTRAINT DF_Inventario_StockActual DEFAULT(0),
+    StockReservado DECIMAL(18,2) NOT NULL CONSTRAINT DF_Inventario_StockReservado DEFAULT(0),
+    StockMinimo DECIMAL(18,2) NOT NULL CONSTRAINT DF_Inventario_StockMinimo DEFAULT(0),
+    StockMaximo DECIMAL(18,2) NULL,
+    FechaActualizacion DATETIME NOT NULL CONSTRAINT DF_Inventario_FechaActualizacion DEFAULT(GETDATE()),
+    CONSTRAINT UQ_Inventario_ProductoBodega UNIQUE(IdProducto, IdBodega),
+    CONSTRAINT FK_Inventario_Producto FOREIGN KEY(IdProducto) REFERENCES dbo.Producto(IdProducto),
+    CONSTRAINT FK_Inventario_Bodega FOREIGN KEY(IdBodega) REFERENCES dbo.Bodega(IdBodega)
+);
+GO
 
-    DECLARE @IdPerfilSuper     INT = (SELECT TOP(1) IdPerfil FROM dbo.Perfil WHERE Codigo = 'SUPERADMIN');
-    DECLARE @IdPerfilAdmin     INT = (SELECT TOP(1) IdPerfil FROM dbo.Perfil WHERE Codigo = 'ADMIN');
-    DECLARE @IdPerfilBodeguero INT = (SELECT TOP(1) IdPerfil FROM dbo.Perfil WHERE Codigo = 'BODEGUERO');
-    DECLARE @IdPerfilVendedor  INT = (SELECT TOP(1) IdPerfil FROM dbo.Perfil WHERE Codigo = 'VENDEDOR');
+CREATE TABLE dbo.MovimientoInventario
+(
+    IdMovimiento INT IDENTITY(1,1) PRIMARY KEY,
+    IdInventario INT NOT NULL,
+    TipoMovimiento NVARCHAR(30) NOT NULL,
+    Cantidad DECIMAL(18,2) NOT NULL,
+    FechaMovimiento DATETIME NOT NULL CONSTRAINT DF_MovimientoInventario_Fecha DEFAULT(GETDATE()),
+    Motivo NVARCHAR(300) NULL,
+    Referencia NVARCHAR(80) NULL,
+    IdUsuario INT NULL,
+    CONSTRAINT FK_MovimientoInventario_Inventario FOREIGN KEY(IdInventario) REFERENCES dbo.Inventario(IdInventario),
+    CONSTRAINT FK_MovimientoInventario_Usuario FOREIGN KEY(IdUsuario) REFERENCES dbo.Usuario(IdUsuario)
+);
+GO
 
-    DECLARE @IdNivelAdministracion INT = (SELECT TOP(1) IdNivelPermiso FROM dbo.NivelPermiso WHERE Codigo = 'ADMINISTRACION');
+CREATE TABLE dbo.Venta
+(
+    IdVenta INT IDENTITY(1,1) PRIMARY KEY,
+    Numero NVARCHAR(40) NOT NULL UNIQUE,
+    Fecha DATETIME NOT NULL CONSTRAINT DF_Venta_Fecha DEFAULT(GETDATE()),
+    IdUsuario INT NOT NULL,
+    IdCliente INT NULL,
+    IdBodega INT NOT NULL,
+    Subtotal DECIMAL(18,2) NOT NULL,
+    Impuestos DECIMAL(18,2) NOT NULL,
+    Total DECIMAL(18,2) NOT NULL,
+    Observaciones NVARCHAR(400) NULL,
+    Estado NVARCHAR(20) NOT NULL CONSTRAINT DF_Venta_Estado DEFAULT('COMPLETADA'),
+    CONSTRAINT FK_Venta_Usuario FOREIGN KEY(IdUsuario) REFERENCES dbo.Usuario(IdUsuario),
+    CONSTRAINT FK_Venta_Cliente FOREIGN KEY(IdCliente) REFERENCES dbo.Cliente(IdCliente),
+    CONSTRAINT FK_Venta_Bodega FOREIGN KEY(IdBodega) REFERENCES dbo.Bodega(IdBodega)
+);
+GO
 
-    /*--------------------------------------------------------
-      3) Usuario admin (crear/actualizar) + asignar SUPERADMIN
-    --------------------------------------------------------*/
-    DECLARE @IdUsuarioAdmin INT;
+CREATE TABLE dbo.VentaDetalle
+(
+    IdVentaDetalle INT IDENTITY(1,1) PRIMARY KEY,
+    IdVenta INT NOT NULL,
+    IdProducto INT NOT NULL,
+    Cantidad DECIMAL(18,2) NOT NULL,
+    PrecioUnitario DECIMAL(18,2) NOT NULL,
+    Descuento DECIMAL(18,2) NOT NULL CONSTRAINT DF_VentaDetalle_Descuento DEFAULT(0),
+    Total DECIMAL(18,2) NOT NULL,
+    CONSTRAINT FK_VentaDetalle_Venta FOREIGN KEY(IdVenta) REFERENCES dbo.Venta(IdVenta) ON DELETE CASCADE,
+    CONSTRAINT FK_VentaDetalle_Producto FOREIGN KEY(IdProducto) REFERENCES dbo.Producto(IdProducto)
+);
+GO
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Usuario WHERE NombreUsuario = 'admin')
-    BEGIN
-        INSERT INTO dbo.Usuario (NombreUsuario, Correo, Clave, NombreCompleto, Activo, UltimoIngreso, FechaCreacion)
-        VALUES ('admin', 'admin@erp.local', 'admin123', N'Super Administrador del sistema', 1, NULL, CAST(@Ahora AS DATE));
+CREATE VIEW dbo.vw_UsuarioPermisoPantalla
+AS
+SELECT
+    up.IdUsuario,
+    pa.IdPantalla,
+    CONVERT(BIT, MAX(CAST(pa.PuedeVer AS TINYINT))) AS PuedeVer,
+    CONVERT(BIT, MAX(CAST(pa.PuedeCrear AS TINYINT))) AS PuedeCrear,
+    CONVERT(BIT, MAX(CAST(pa.PuedeEditar AS TINYINT))) AS PuedeEditar,
+    CONVERT(BIT, MAX(CAST(pa.PuedeEliminar AS TINYINT))) AS PuedeEliminar,
+    CONVERT(BIT, MAX(CAST(pa.PuedeExportar AS TINYINT))) AS PuedeExportar,
+    CONVERT(BIT, MAX(CAST(pa.Activo AS TINYINT))) AS Activo,
+    MAX(pa.IdNivelPermiso) AS IdNivelPermiso,
+    MAX(pa.CodigoNivelCalculado) AS CodigoNivelCalculado,
+    MAX(pa.FechaOtorgado) AS UltimaActualizacion,
+    MAX(pa.OtorgadoPor) AS OtorgadoPor
+FROM dbo.UsuarioPerfil up
+JOIN dbo.PerfilPantallaAcceso pa
+    ON pa.IdPerfil = up.IdPerfil
+WHERE pa.Activo = 1
+GROUP BY up.IdUsuario, pa.IdPantalla;
+GO
 
-        SET @IdUsuarioAdmin = SCOPE_IDENTITY();
-    END
-    ELSE
-    BEGIN
-        SELECT TOP(1) @IdUsuarioAdmin = IdUsuario
-        FROM dbo.Usuario
-        WHERE NombreUsuario = 'admin';
+CREATE OR ALTER TRIGGER dbo.TR_PerfilPantallaAcceso_Normalizar
+ON dbo.PerfilPantallaAcceso
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
 
-        UPDATE u
-        SET  Correo = CASE
-                        WHEN Correo = 'admin@erp.local' THEN Correo
-                        WHEN NOT EXISTS (SELECT 1 FROM dbo.Usuario x WHERE x.Correo = 'admin@erp.local' AND x.IdUsuario <> u.IdUsuario)
-                             THEN 'admin@erp.local'
-                        ELSE Correo
-                      END,
-             Clave = 'admin123',
-             NombreCompleto = CASE WHEN NULLIF(LTRIM(RTRIM(NombreCompleto)), '') IS NULL
-                                   THEN N'Super Administrador del sistema' ELSE NombreCompleto END,
-             Activo = 1
-        FROM dbo.Usuario u
-        WHERE u.IdUsuario = @IdUsuarioAdmin;
-    END;
-
-    IF @IdUsuarioAdmin IS NULL
-    BEGIN
-        SELECT TOP(1) @IdUsuarioAdmin = IdUsuario FROM dbo.Usuario WHERE NombreUsuario = 'admin';
-    END;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM dbo.UsuarioPerfil WHERE IdUsuario = @IdUsuarioAdmin AND IdPerfil = @IdPerfilSuper
-    )
-    BEGIN
-        INSERT INTO dbo.UsuarioPerfil (IdUsuario, IdPerfil, AsignadoPor)
-        VALUES (@IdUsuarioAdmin, @IdPerfilSuper, N'SEED');
-    END;
-
-    /*--------------------------------------------------------
-      4) Permisos SUPERADMIN: full sobre todas las pantallas
-         (UPSERT sin MERGE)
-    --------------------------------------------------------*/
-    -- UPDATE existentes
-    UPDATE d
-       SET d.PuedeVer = 1,
-           d.PuedeCrear = 1,
-           d.PuedeEditar = 1,
-           d.PuedeEliminar = 1,
-           d.PuedeExportar = 1,
-           d.Activo = 1,
-           d.IdNivelPermiso = @IdNivelAdministracion,
-           d.FechaOtorgado = @Ahora,
-           d.OtorgadoPor = N'SEED'
-      FROM dbo.PerfilPantallaAcceso d
-      JOIN dbo.Pantalla p ON p.IdPantalla = d.IdPantalla
-     WHERE d.IdPerfil = @IdPerfilSuper;
-
-    -- INSERT faltantes
-    INSERT INTO dbo.PerfilPantallaAcceso
-        (IdPerfil, IdPantalla, IdNivelPermiso, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
-    SELECT @IdPerfilSuper, p.IdPantalla, @IdNivelAdministracion, 1, 1, 1, 1, 1, 1, @Ahora, N'SEED'
-      FROM dbo.Pantalla p
-      WHERE NOT EXISTS (
-            SELECT 1
-              FROM dbo.PerfilPantallaAcceso a
-             WHERE a.IdPerfil = @IdPerfilSuper
-               AND a.IdPantalla = p.IdPantalla
-      );
-
-    /*--------------------------------------------------------
-      5) Permisos ADMIN
-    --------------------------------------------------------*/
-    IF @IdPerfilAdmin IS NOT NULL
-    BEGIN
-        DECLARE @PermisosAdmin TABLE (Codigo NVARCHAR(50), PuedeVer BIT, PuedeCrear BIT, PuedeEditar BIT, PuedeEliminar BIT, PuedeExportar BIT);
-        INSERT INTO @PermisosAdmin VALUES
-            (N'PRINCIPAL', 1, 0, 0, 0, 0),
-            (N'USUARIOS',  1, 1, 1, 1, 1),
-            (N'ROLES',     1, 1, 1, 1, 1),
-            (N'ACCESOS',   1, 1, 1, 1, 1),
-            (N'BODEGAS',   1, 1, 1, 1, 1),
-            (N'PRODUCTOS', 1, 1, 1, 1, 1),
-            (N'INVENTARIO',1, 1, 1, 1, 1),
-            (N'CLIENTES',  1, 1, 1, 1, 1),
-            (N'VENTAS',    1, 1, 1, 1, 1);
-
-        -- UPDATE existentes
-        UPDATE d
-           SET d.PuedeVer = r.PuedeVer,
-               d.PuedeCrear = r.PuedeCrear,
-               d.PuedeEditar = r.PuedeEditar,
-               d.PuedeEliminar = r.PuedeEliminar,
-               d.PuedeExportar = r.PuedeExportar,
-               d.Activo = 1,
-               d.IdNivelPermiso = nivel.IdNivelPermiso,
-               d.FechaOtorgado = @Ahora,
-               d.OtorgadoPor = N'SEED'
-          FROM dbo.PerfilPantallaAcceso d
-          JOIN dbo.Pantalla p ON p.IdPantalla = d.IdPantalla
-          JOIN @PermisosAdmin r ON r.Codigo = p.Codigo
-          OUTER APPLY (
-                SELECT TOP(1) np.IdNivelPermiso
-                FROM dbo.NivelPermiso np
-                WHERE np.PuedeVer = r.PuedeVer
-                  AND np.PuedeCrear = r.PuedeCrear
-                  AND np.PuedeEditar = r.PuedeEditar
-                  AND np.PuedeEliminar = r.PuedeEliminar
-                  AND np.PuedeExportar = r.PuedeExportar
-                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
-          ) nivel
-         WHERE d.IdPerfil = @IdPerfilAdmin;
-
-        -- INSERT faltantes
-        INSERT INTO dbo.PerfilPantallaAcceso
-            (IdPerfil, IdPantalla, IdNivelPermiso, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
-        SELECT @IdPerfilAdmin, p.IdPantalla, nivel.IdNivelPermiso, r.PuedeVer, r.PuedeCrear, r.PuedeEditar, r.PuedeEliminar, r.PuedeExportar, 1, @Ahora, N'SEED'
-          FROM @PermisosAdmin r
-          JOIN dbo.Pantalla p ON p.Codigo = r.Codigo
-          OUTER APPLY (
-                SELECT TOP(1) np.IdNivelPermiso
-                FROM dbo.NivelPermiso np
-                WHERE np.PuedeVer = r.PuedeVer
-                  AND np.PuedeCrear = r.PuedeCrear
-                  AND np.PuedeEditar = r.PuedeEditar
-                  AND np.PuedeEliminar = r.PuedeEliminar
-                  AND np.PuedeExportar = r.PuedeExportar
-                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
-          ) nivel
-         WHERE NOT EXISTS (
-                SELECT 1
-                  FROM dbo.PerfilPantallaAcceso a
-                 WHERE a.IdPerfil = @IdPerfilAdmin
-                   AND a.IdPantalla = p.IdPantalla
-         );
-    END;
-
-    /*--------------------------------------------------------
-      6) Permisos BODEGUERO
-    --------------------------------------------------------*/
-    IF @IdPerfilBodeguero IS NOT NULL
-    BEGIN
-        DECLARE @PermisosBodeguero TABLE (Codigo NVARCHAR(50), PuedeVer BIT, PuedeCrear BIT, PuedeEditar BIT, PuedeEliminar BIT, PuedeExportar BIT);
-        INSERT INTO @PermisosBodeguero VALUES
-            (N'PRINCIPAL', 1, 0, 0, 0, 0),
-            (N'BODEGAS',   1, 1, 1, 1, 1),
-            (N'PRODUCTOS', 1, 1, 1, 1, 1),
-            (N'INVENTARIO',1, 1, 1, 1, 1);
-
-        -- UPDATE existentes
-        UPDATE d
-           SET d.PuedeVer = r.PuedeVer,
-               d.PuedeCrear = r.PuedeCrear,
-               d.PuedeEditar = r.PuedeEditar,
-               d.PuedeEliminar = r.PuedeEliminar,
-               d.PuedeExportar = r.PuedeExportar,
-               d.Activo = 1,
-               d.IdNivelPermiso = nivel.IdNivelPermiso,
-               d.FechaOtorgado = @Ahora,
-               d.OtorgadoPor = N'SEED'
-          FROM dbo.PerfilPantallaAcceso d
-          JOIN dbo.Pantalla p ON p.IdPantalla = d.IdPantalla
-          JOIN @PermisosBodeguero r ON r.Codigo = p.Codigo
-          OUTER APPLY (
-                SELECT TOP(1) np.IdNivelPermiso
-                FROM dbo.NivelPermiso np
-                WHERE np.PuedeVer = r.PuedeVer
-                  AND np.PuedeCrear = r.PuedeCrear
-                  AND np.PuedeEditar = r.PuedeEditar
-                  AND np.PuedeEliminar = r.PuedeEliminar
-                  AND np.PuedeExportar = r.PuedeExportar
-                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
-          ) nivel
-         WHERE d.IdPerfil = @IdPerfilBodeguero;
-
-        -- INSERT faltantes
-        INSERT INTO dbo.PerfilPantallaAcceso
-            (IdPerfil, IdPantalla, IdNivelPermiso, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
-        SELECT @IdPerfilBodeguero, p.IdPantalla, nivel.IdNivelPermiso, r.PuedeVer, r.PuedeCrear, r.PuedeEditar, r.PuedeEliminar, r.PuedeExportar, 1, @Ahora, N'SEED'
-          FROM @PermisosBodeguero r
-          JOIN dbo.Pantalla p ON p.Codigo = r.Codigo
-          OUTER APPLY (
-                SELECT TOP(1) np.IdNivelPermiso
-                FROM dbo.NivelPermiso np
-                WHERE np.PuedeVer = r.PuedeVer
-                  AND np.PuedeCrear = r.PuedeCrear
-                  AND np.PuedeEditar = r.PuedeEditar
-                  AND np.PuedeEliminar = r.PuedeEliminar
-                  AND np.PuedeExportar = r.PuedeExportar
-                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
-          ) nivel
-         WHERE NOT EXISTS (
-                SELECT 1
-                  FROM dbo.PerfilPantallaAcceso a
-                 WHERE a.IdPerfil = @IdPerfilBodeguero
-                   AND a.IdPantalla = p.IdPantalla
-         );
-    END;
-
-    /*--------------------------------------------------------
-      7) Permisos VENDEDOR
-    --------------------------------------------------------*/
-    IF @IdPerfilVendedor IS NOT NULL
-    BEGIN
-        DECLARE @PermisosVendedor TABLE (Codigo NVARCHAR(50), PuedeVer BIT, PuedeCrear BIT, PuedeEditar BIT, PuedeEliminar BIT, PuedeExportar BIT);
-        INSERT INTO @PermisosVendedor VALUES
-            (N'PRINCIPAL', 1, 0, 0, 0, 0),
-            (N'CLIENTES',  1, 1, 1, 0, 1),
-            (N'VENTAS',    1, 1, 0, 0, 1);
-
-        -- UPDATE existentes
-        UPDATE d
-           SET d.PuedeVer = r.PuedeVer,
-               d.PuedeCrear = r.PuedeCrear,
-               d.PuedeEditar = r.PuedeEditar,
-               d.PuedeEliminar = r.PuedeEliminar,
-               d.PuedeExportar = r.PuedeExportar,
-               d.Activo = 1,
-               d.IdNivelPermiso = nivel.IdNivelPermiso,
-               d.FechaOtorgado = @Ahora,
-               d.OtorgadoPor = N'SEED'
-          FROM dbo.PerfilPantallaAcceso d
-          JOIN dbo.Pantalla p ON p.IdPantalla = d.IdPantalla
-          JOIN @PermisosVendedor r ON r.Codigo = p.Codigo
-          OUTER APPLY (
-                SELECT TOP(1) np.IdNivelPermiso
-                FROM dbo.NivelPermiso np
-                WHERE np.PuedeVer = r.PuedeVer
-                  AND np.PuedeCrear = r.PuedeCrear
-                  AND np.PuedeEditar = r.PuedeEditar
-                  AND np.PuedeEliminar = r.PuedeEliminar
-                  AND np.PuedeExportar = r.PuedeExportar
-                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
-          ) nivel
-         WHERE d.IdPerfil = @IdPerfilVendedor;
-
-        -- INSERT faltantes
-        INSERT INTO dbo.PerfilPantallaAcceso
-            (IdPerfil, IdPantalla, IdNivelPermiso, PuedeVer, PuedeCrear, PuedeEditar, PuedeEliminar, PuedeExportar, Activo, FechaOtorgado, OtorgadoPor)
-        SELECT @IdPerfilVendedor, p.IdPantalla, nivel.IdNivelPermiso, r.PuedeVer, r.PuedeCrear, r.PuedeEditar, r.PuedeEliminar, r.PuedeExportar, 1, @Ahora, N'SEED'
-          FROM @PermisosVendedor r
-          JOIN dbo.Pantalla p ON p.Codigo = r.Codigo
-          OUTER APPLY (
-                SELECT TOP(1) np.IdNivelPermiso
-                FROM dbo.NivelPermiso np
-                WHERE np.PuedeVer = r.PuedeVer
-                  AND np.PuedeCrear = r.PuedeCrear
-                  AND np.PuedeEditar = r.PuedeEditar
-                  AND np.PuedeEliminar = r.PuedeEliminar
-                  AND np.PuedeExportar = r.PuedeExportar
-                ORDER BY np.EsPersonalizado, np.IdNivelPermiso
-          ) nivel
-         WHERE NOT EXISTS (
-                SELECT 1
-                  FROM dbo.PerfilPantallaAcceso a
-                 WHERE a.IdPerfil = @IdPerfilVendedor
-                   AND a.IdPantalla = p.IdPantalla
-         );
-    END;
-
-    /*--------------------------------------------------------
-      8) Desactivar perfil BASICO si existe
-    --------------------------------------------------------*/
-    IF EXISTS (SELECT 1 FROM dbo.Perfil WHERE Codigo = 'BASICO')
-    BEGIN
-        UPDATE dbo.Perfil SET Activo = 0 WHERE Codigo = 'BASICO';
-    END;
-
-    /*--------------------------------------------------------
-      9) Catálogos base: Bodegas, Categorías, Productos, Clientes
-    --------------------------------------------------------*/
-    IF NOT EXISTS (SELECT 1 FROM dbo.Bodega WHERE Codigo = 'BOD-PRINC')
-    BEGIN
-        INSERT INTO dbo.Bodega (Codigo, Nombre, Ubicacion, Encargado, Descripcion)
-        VALUES ('BOD-PRINC', N'Bodega Principal', N'Casa matriz', N'Encargado General', N'Bodega principal del negocio');
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.Bodega WHERE Codigo = 'BOD-SEC')
-    BEGIN
-        INSERT INTO dbo.Bodega (Codigo, Nombre, Ubicacion, Encargado, Descripcion)
-        VALUES ('BOD-SEC', N'Bodega Secundaria', N'Sucursal centro', N'Encargado Sucursal', N'Bodega para despacho regional');
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.CategoriaProducto WHERE Nombre = N'General')
-    BEGIN
-        INSERT INTO dbo.CategoriaProducto (Nombre, Descripcion)
-        VALUES (N'General', N'Productos generales de comercio');
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.CategoriaProducto WHERE Nombre = N'Tecnología')
-    BEGIN
-        INSERT INTO dbo.CategoriaProducto (Nombre, Descripcion)
-        VALUES (N'Tecnología', N'Equipos y dispositivos electrónicos');
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.Producto WHERE Codigo = 'P-0001')
-    BEGIN
-        DECLARE @IdCategoriaGeneral INT = (SELECT TOP(1) IdCategoria FROM dbo.CategoriaProducto WHERE Nombre = N'General');
-        INSERT INTO dbo.Producto (Codigo, Nombre, Descripcion, IdCategoria, PrecioCosto, PrecioVenta, StockMinimo, StockMaximo)
-        VALUES ('P-0001', N'Producto Genérico', N'Producto de ejemplo para demostración', @IdCategoriaGeneral, 10.00, 18.00, 5, 500);
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.Producto WHERE Codigo = 'P-0002')
-    BEGIN
-        DECLARE @IdCategoriaTec INT = (SELECT TOP(1) IdCategoria FROM dbo.CategoriaProducto WHERE Nombre = N'Tecnología');
-        INSERT INTO dbo.Producto (Codigo, Nombre, Descripcion, IdCategoria, PrecioCosto, PrecioVenta, StockMinimo, StockMaximo)
-        VALUES ('P-0002', N'Dispositivo Inteligente', N'Equipo tecnológico para ventas minoristas', @IdCategoriaTec, 180.00, 250.00, 2, 120);
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.Cliente WHERE Identificacion = 'CLI-0001')
-    BEGIN
-        INSERT INTO dbo.Cliente (NombreCompleto, Identificacion, TipoDocumento, Correo, Telefono, Direccion)
-        VALUES (N'Cliente Mostrador', 'CLI-0001', 'RNC', 'cliente@comercio.local', '809-555-1000', N'Dirección comercial principal');
-    END;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.Cliente WHERE Identificacion = 'CLI-0002')
-    BEGIN
-        INSERT INTO dbo.Cliente (NombreCompleto, Identificacion, TipoDocumento, Correo, Telefono, Direccion)
-        VALUES (N'Compañía Corporativa', 'CLI-0002', 'RNC', 'ventas@clienteempresarial.local', '809-555-2000', N'Parque industrial');
-    END;
-
-    /*--------------------------------------------------------
-      10) Inventario base (solo P-0001 y P-0002) sin CTE
-    --------------------------------------------------------*/
-    DECLARE @BodegaPrincipal INT = (SELECT TOP(1) IdBodega FROM dbo.Bodega WHERE Codigo = 'BOD-PRINC');
-    DECLARE @BodegaSecundaria INT = (SELECT TOP(1) IdBodega FROM dbo.Bodega WHERE Codigo = 'BOD-SEC');
-
-    -- Bodega Principal
-    IF @BodegaPrincipal IS NOT NULL
-    BEGIN
-        DECLARE @OrigenPrincipal TABLE (IdProducto INT, IdBodega INT, Cantidad INT);
-
-        INSERT INTO @OrigenPrincipal (IdProducto, IdBodega, Cantidad)
-        SELECT p.IdProducto, @BodegaPrincipal, CASE p.Codigo WHEN 'P-0001' THEN 150 WHEN 'P-0002' THEN 25 END
-        FROM dbo.Producto p
-        WHERE p.Codigo IN ('P-0001','P-0002');
-
-        -- UPDATE existentes
-        UPDATE inv
-           SET inv.StockActual = orig.Cantidad,
-               inv.FechaActualizacion = @Ahora
-          FROM dbo.Inventario inv
-          JOIN @OrigenPrincipal orig
-            ON orig.IdProducto = inv.IdProducto
-           AND orig.IdBodega  = inv.IdBodega;
-
-        -- INSERT faltantes
-        INSERT INTO dbo.Inventario (IdProducto, IdBodega, StockActual, StockMinimo, StockMaximo)
-        SELECT orig.IdProducto, orig.IdBodega, orig.Cantidad, 0, NULL
-          FROM @OrigenPrincipal orig
-         WHERE NOT EXISTS (
-                SELECT 1
-                  FROM dbo.Inventario i
-                 WHERE i.IdProducto = orig.IdProducto
-                   AND i.IdBodega  = orig.IdBodega
-         );
-    END;
-
-    -- Bodega Secundaria
-    IF @BodegaSecundaria IS NOT NULL
-    BEGIN
-        DECLARE @OrigenSecundaria TABLE (IdProducto INT, IdBodega INT, Cantidad INT);
-
-        INSERT INTO @OrigenSecundaria (IdProducto, IdBodega, Cantidad)
-        SELECT p.IdProducto, @BodegaSecundaria, CASE p.Codigo WHEN 'P-0001' THEN 80 WHEN 'P-0002' THEN 10 END
-        FROM dbo.Producto p
-        WHERE p.Codigo IN ('P-0001','P-0002');
-
-        -- UPDATE existentes
-        UPDATE inv
-           SET inv.StockActual = orig.Cantidad,
-               inv.FechaActualizacion = @Ahora
-          FROM dbo.Inventario inv
-          JOIN @OrigenSecundaria orig
-            ON orig.IdProducto = inv.IdProducto
-           AND orig.IdBodega  = inv.IdBodega;
-
-        -- INSERT faltantes
-        INSERT INTO dbo.Inventario (IdProducto, IdBodega, StockActual, StockMinimo, StockMaximo)
-        SELECT orig.IdProducto, orig.IdBodega, orig.Cantidad, 0, NULL
-          FROM @OrigenSecundaria orig
-         WHERE NOT EXISTS (
-                SELECT 1
-                  FROM dbo.Inventario i
-                 WHERE i.IdProducto = orig.IdProducto
-                   AND i.IdBodega  = orig.IdBodega
-         );
-    END;
-
-    COMMIT;
-    PRINT 'Seed completado correctamente.';
-END TRY
-BEGIN CATCH
-    IF XACT_STATE() <> 0 ROLLBACK;
-    DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE(),
-            @ErrNum INT = ERROR_NUMBER(),
-            @ErrSev INT = ERROR_SEVERITY(),
-            @ErrState INT = ERROR_STATE(),
-            @ErrLine INT = ERROR_LINE();
-    RAISERROR(N'Error %d (sev %d, state %d) en línea %d: %s',
-              @ErrSev, @ErrState, 1, @ErrNum, @ErrSev, @ErrState, @ErrLine, @ErrMsg);
-END CATCH;
+    UPDATE p
+    SET Activo = CASE WHEN p.PuedeVer = 0 THEN 0 ELSE p.Activo END,
+        IdNivelPermiso = n.IdNivelPermiso
+    FROM dbo.PerfilPantallaAcceso p
+    INNER JOIN inserted i ON i.IdPerfilPantallaAcceso = p.IdPerfilPantallaAcceso
+    OUTER APPLY (
+        SELECT TOP(1) np.IdNivelPermiso
+        FROM dbo.NivelPermiso np
+        WHERE np.PuedeVer = p.PuedeVer
+          AND np.PuedeCrear = p.PuedeCrear
+          AND np.PuedeEditar = p.PuedeEditar
+          AND np.PuedeEliminar = p.PuedeEliminar
+          AND np.PuedeExportar = p.PuedeExportar
+        ORDER BY np.EsPersonalizado, np.IdNivelPermiso
+    ) n
+    WHERE (p.PuedeVer = 0 AND p.Activo <> 0)
+       OR (p.PuedeVer = 1 AND (
+                (p.IdNivelPermiso IS NULL AND n.IdNivelPermiso IS NOT NULL)
+             OR (p.IdNivelPermiso IS NOT NULL AND n.IdNivelPermiso IS NULL)
+             OR (p.IdNivelPermiso <> n.IdNivelPermiso)
+           ));
+END;
+GO
