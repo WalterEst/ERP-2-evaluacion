@@ -11,6 +11,7 @@ namespace ERP_2_evaluacion;
 public class InventarioForm : Form
 {
     private readonly int? _idUsuario;
+    private SeguridadUtil.PermisosPantalla? _permisosPantalla;
 
     private readonly ComboBox _cmbBodega = new();
     private readonly TextBox _txtBuscar = new() { PlaceholderText = "Buscar producto" };
@@ -78,6 +79,11 @@ public class InventarioForm : Form
 
     private void InventarioForm_Load(object? sender, EventArgs e)
     {
+        if (!AplicarPermisos())
+        {
+            return;
+        }
+
         CargarBodegas();
         CargarInventario();
     }
@@ -218,6 +224,11 @@ public class InventarioForm : Form
 
     private void CargarInventario()
     {
+        if (_permisosPantalla is { TieneAccesoLectura: false })
+        {
+            return;
+        }
+
         if (_cmbBodega.SelectedValue is not int idBodega)
         {
             _grid.DataSource = null;
@@ -258,6 +269,70 @@ ORDER BY p.Nombre",
         }
     }
 
+    private bool AplicarPermisos()
+    {
+        if (!_idUsuario.HasValue)
+        {
+            MostrarBotonesMovimiento(true);
+            _permisosPantalla = null;
+            return true;
+        }
+
+        try
+        {
+            _permisosPantalla = SeguridadUtil.ObtenerPermisosPantalla(_idUsuario.Value, "INVENTARIO");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"No fue posible validar tus permisos: {ex.Message}", "Advertencia",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MostrarBotonesMovimiento(true);
+            _permisosPantalla = null;
+            return true;
+        }
+
+        if (_permisosPantalla is { TieneAccesoLectura: false })
+        {
+            MostrarBotonesMovimiento(false);
+            _grid.Enabled = false;
+            _cmbBodega.Enabled = false;
+            _txtBuscar.Enabled = false;
+            _lblResumen.Text = string.Empty;
+            _lblMensaje.ForeColor = UiTheme.MutedTextColor;
+            _lblMensaje.Text = "No cuentas con permisos de lectura sobre Inventario.";
+            MessageBox.Show("No cuentas con permisos de lectura para Inventario.", "Acceso denegado",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+
+        bool puedeColaborar = _permisosPantalla?.TieneAccesoColaboracion ?? true;
+        MostrarBotonesMovimiento(puedeColaborar);
+
+        if (!puedeColaborar)
+        {
+            _lblMensaje.ForeColor = UiTheme.MutedTextColor;
+            _lblMensaje.Text = "Tienes acceso de lectura. Los movimientos de inventario están deshabilitados.";
+        }
+        else
+        {
+            _lblMensaje.ForeColor = UiTheme.DangerColor;
+            _lblMensaje.Text = string.Empty;
+        }
+
+        return true;
+    }
+
+    private void MostrarBotonesMovimiento(bool visibles)
+    {
+        _btnEntrada.Visible = visibles;
+        _btnSalida.Visible = visibles;
+        _btnAjuste.Visible = visibles;
+        if (_botones is not null)
+        {
+            _botones.Visible = visibles;
+        }
+    }
+
     private void ActualizarResumen()
     {
         if (_inventario == null || _inventario.Rows.Count == 0)
@@ -273,6 +348,13 @@ ORDER BY p.Nombre",
 
     private void RegistrarMovimiento(TipoMovimiento tipo)
     {
+        if (_permisosPantalla is { TieneAccesoColaboracion: false })
+        {
+            MessageBox.Show("Tu perfil solo cuenta con permisos de lectura sobre Inventario.",
+                "Acción no permitida", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
         if (!TryObtenerSeleccion(out var idInventario, out var producto, out var stockActual))
         {
             return;

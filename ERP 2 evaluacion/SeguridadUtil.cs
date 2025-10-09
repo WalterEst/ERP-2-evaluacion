@@ -16,6 +16,21 @@ public static class SeguridadUtil
     private static readonly string CodigosPrivilegiadosSql = string.Join(", ",
         CodigosPerfilesPrivilegiados.Select((_, index) => $"@codigoPriv{index}"));
 
+    public sealed record PermisosPantalla(bool PuedeVer, bool PuedeCrear, bool PuedeEditar, bool PuedeEliminar, bool PuedeExportar)
+    {
+        public bool TieneAccesoLectura => PuedeVer;
+        public bool TieneAccesoColaboracion => PuedeVer && (PuedeCrear || PuedeEditar || PuedeExportar);
+        public bool TieneAccesoAdministracion => TieneAccesoColaboracion && PuedeEliminar;
+
+        public string Nivel => !PuedeVer
+            ? "Sin acceso"
+            : TieneAccesoAdministracion
+                ? "Administración"
+                : TieneAccesoColaboracion
+                    ? "Colaboración"
+                    : "Lectura";
+    }
+
     public static string GenerarPasswordTemporal(int largo = 12)
     {
         if (largo < 1)
@@ -79,6 +94,45 @@ WHERE (u.NombreUsuario = @identificador OR u.Correo = @identificador)
             AgregarParametrosPrivilegio(command);
             return command;
         });
+    }
+
+    public static PermisosPantalla ObtenerPermisosPantalla(int idUsuario, string codigoPantalla)
+    {
+        if (string.IsNullOrWhiteSpace(codigoPantalla))
+        {
+            throw new ArgumentException("El código de pantalla es obligatorio", nameof(codigoPantalla));
+        }
+
+        using var connection = Db.GetConnection();
+        connection.Open();
+
+        const string sql = @"SELECT TOP 1 v.PuedeVer,
+       v.PuedeCrear,
+       v.PuedeEditar,
+       v.PuedeEliminar,
+       v.PuedeExportar
+FROM vw_UsuarioPermisoPantalla v
+JOIN Pantalla p ON p.IdPantalla = v.IdPantalla
+WHERE v.IdUsuario = @usuario
+  AND p.Codigo = @codigo
+  AND p.Activo = 1;";
+
+        using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@usuario", idUsuario);
+        command.Parameters.AddWithValue("@codigo", codigoPantalla);
+
+        using var reader = command.ExecuteReader();
+        if (reader.Read())
+        {
+            return new PermisosPantalla(
+                reader.GetBoolean(0),
+                reader.GetBoolean(1),
+                reader.GetBoolean(2),
+                reader.GetBoolean(3),
+                reader.GetBoolean(4));
+        }
+
+        return new PermisosPantalla(false, false, false, false, false);
     }
 
     private static bool EjecutarConsultaPrivilegio(Func<SqlConnection, SqlCommand> comandoFactory)
