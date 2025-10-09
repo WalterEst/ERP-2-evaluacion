@@ -32,13 +32,24 @@ namespace ERP_2_evaluacion
         private readonly Button _btnIrBodegas = new();
         private readonly string _heroSubtitleDefault = "Gestiona tus módulos y accesos desde un solo lugar";
         private List<PantallaNodo> _pantallasDisponibles = new();
+        private readonly Font _nodoAgrupadorFont = new(UiTheme.BaseFont, FontStyle.Italic);
 
         private class PantallaNodo
         {
+            public int Id { get; set; }
+            public int? IdPadre { get; set; }
+            public string Codigo { get; set; } = string.Empty;
+            public string Nombre { get; set; } = string.Empty;
+            public int Orden { get; set; }
+            public bool PuedeAbrir { get; set; }
+        }
+
+        private sealed class PantallaInfo
+        {
             public int Id { get; init; }
-            public int? IdPadre { get; init; }
             public string Codigo { get; init; } = string.Empty;
             public string Nombre { get; init; } = string.Empty;
+            public int? IdPadre { get; init; }
             public int Orden { get; init; }
         }
 
@@ -260,6 +271,16 @@ namespace ERP_2_evaluacion
             Load += (_, _) => CargarMenu();
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _nodoAgrupadorFont?.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
         private void CargarMenu()
         {
             _pantallasDisponibles = new List<PantallaNodo>();
@@ -269,35 +290,27 @@ namespace ERP_2_evaluacion
                 using var connection = Db.GetConnection();
                 connection.Open();
 
-                using var command = new SqlCommand(@"
-SELECT p.IdPantalla, p.Codigo, p.NombrePantalla, p.IdPadre, p.Orden
-FROM Pantalla p
-WHERE p.Activo = 1
-  AND EXISTS (
-        SELECT 1
-        FROM UsuarioPerfil up
-        JOIN PerfilPantallaAcceso pa ON pa.IdPerfil = up.IdPerfil
-        WHERE up.IdUsuario = @IdUsuario
-          AND pa.IdPantalla = p.IdPantalla
-          AND pa.PuedeVer = 1
-          AND pa.Activo = 1
-  )
-ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
-       p.IdPadre, p.Orden, p.NombrePantalla;", connection);
-                command.Parameters.AddWithValue("@IdUsuario", _idUsuario);
-
-                using var reader = command.ExecuteReader();
-                while (reader.Read())
+                var catalogoPantallas = ObtenerCatalogoPantallas(connection);
+                if (catalogoPantallas.Count == 0)
                 {
-                    _pantallasDisponibles.Add(new PantallaNodo
-                    {
-                        Id = reader.GetInt32(0),
-                        Codigo = reader.GetString(1),
-                        Nombre = reader.GetString(2),
-                        IdPadre = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3),
-                        Orden = reader.IsDBNull(4) ? 0 : reader.GetInt32(4)
-                    });
+                    RenderMenu(null);
+                    return;
                 }
+
+                var pantallasPermitidas = ObtenerPantallasPermitidas(connection);
+                var nodos = new Dictionary<int, PantallaNodo>();
+
+                foreach (var idPantalla in pantallasPermitidas)
+                {
+                    AgregarPantallaConAncestros(idPantalla, true, nodos, catalogoPantallas);
+                }
+
+                _pantallasDisponibles = nodos.Values
+                    .OrderBy(p => p.IdPadre.HasValue ? 1 : 0)
+                    .ThenBy(p => p.IdPadre ?? 0)
+                    .ThenBy(p => p.Orden)
+                    .ThenBy(p => p.Nombre, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
             }
             catch (Exception ex)
             {
@@ -383,8 +396,9 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
                 _arbolPantallas.ExpandAll();
                 _arbolPantallas.SelectedNode = _arbolPantallas.Nodes[0];
 
-                var totalPantallas = _pantallasDisponibles.Count;
-                var totalSecciones = _pantallasDisponibles.Count(p => !p.IdPadre.HasValue);
+                var pantallasAccesibles = _pantallasDisponibles.Where(p => p.PuedeAbrir).ToList();
+                var totalPantallas = pantallasAccesibles.Count;
+                var totalSecciones = CalcularTotalSecciones(pantallasAccesibles);
                 _lblHeroTotalPantallas.Text = totalPantallas.ToString();
                 _lblHeroTotalSecciones.Text = totalSecciones.ToString();
 
@@ -440,6 +454,12 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
                 ToolTipText = pantalla.Codigo
             };
 
+            if (!pantalla.PuedeAbrir)
+            {
+                nodo.ForeColor = UiTheme.MutedTextColor;
+                nodo.NodeFont = _nodoAgrupadorFont;
+            }
+
             foreach (var hijo in nodosHijo)
             {
                 nodo.Nodes.Add(hijo);
@@ -453,7 +473,7 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
             var total = 0;
             foreach (TreeNode node in nodes)
             {
-                if (node.Tag is PantallaNodo)
+                if (node.Tag is PantallaNodo pantalla && pantalla.PuedeAbrir)
                 {
                     total++;
                 }
@@ -462,17 +482,25 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
             return total;
         }
 
-        private FlowLayoutPanel CrearPanelAccionesRapidas()
+        private Control CrearPanelAccionesRapidas()
         {
+            var contenedor = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                Margin = new Padding(0),
+                Padding = new Padding(0, 0, 12, 0)
+            };
+
             var panel = new FlowLayoutPanel
             {
-                Dock = DockStyle.Top,
                 FlowDirection = FlowDirection.TopDown,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 WrapContents = false,
                 Margin = new Padding(0),
-                Padding = new Padding(0)
+                Padding = new Padding(0),
+                Dock = DockStyle.Top
             };
 
             ConfigurarBotonAccion(_btnIrUsuarios, "Usuarios", "Gestiona cuentas y credenciales", "USUARIOS");
@@ -493,7 +521,8 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
             panel.Controls.Add(_btnIrClientes);
             panel.Controls.Add(_btnIrVentas);
 
-            return panel;
+            contenedor.Controls.Add(panel);
+            return contenedor;
         }
 
         private void ConfigurarBotonAccion(Button boton, string titulo, string descripcion, string codigoPantalla)
@@ -550,16 +579,16 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
 
         private void ActualizarEstadoAcciones()
         {
-            bool tieneUsuarios = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "USUARIOS", StringComparison.OrdinalIgnoreCase));
-            bool tieneRoles = _pantallasDisponibles.Any(p =>
+            bool tieneUsuarios = _pantallasDisponibles.Any(p => p.PuedeAbrir && string.Equals(p.Codigo, "USUARIOS", StringComparison.OrdinalIgnoreCase));
+            bool tieneRoles = _pantallasDisponibles.Any(p => p.PuedeAbrir && (
                 string.Equals(p.Codigo, "ROLES", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(p.Codigo, "PERFILES", StringComparison.OrdinalIgnoreCase));
-            bool tieneAccesos = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "ACCESOS", StringComparison.OrdinalIgnoreCase));
-            bool tieneProductos = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "PRODUCTOS", StringComparison.OrdinalIgnoreCase));
-            bool tieneBodegas = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "BODEGAS", StringComparison.OrdinalIgnoreCase));
-            bool tieneInventario = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "INVENTARIO", StringComparison.OrdinalIgnoreCase));
-            bool tieneClientes = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "CLIENTES", StringComparison.OrdinalIgnoreCase));
-            bool tieneVentas = _pantallasDisponibles.Any(p => string.Equals(p.Codigo, "VENTAS", StringComparison.OrdinalIgnoreCase));
+                string.Equals(p.Codigo, "PERFILES", StringComparison.OrdinalIgnoreCase)));
+            bool tieneAccesos = _pantallasDisponibles.Any(p => p.PuedeAbrir && string.Equals(p.Codigo, "ACCESOS", StringComparison.OrdinalIgnoreCase));
+            bool tieneProductos = _pantallasDisponibles.Any(p => p.PuedeAbrir && string.Equals(p.Codigo, "PRODUCTOS", StringComparison.OrdinalIgnoreCase));
+            bool tieneBodegas = _pantallasDisponibles.Any(p => p.PuedeAbrir && string.Equals(p.Codigo, "BODEGAS", StringComparison.OrdinalIgnoreCase));
+            bool tieneInventario = _pantallasDisponibles.Any(p => p.PuedeAbrir && string.Equals(p.Codigo, "INVENTARIO", StringComparison.OrdinalIgnoreCase));
+            bool tieneClientes = _pantallasDisponibles.Any(p => p.PuedeAbrir && string.Equals(p.Codigo, "CLIENTES", StringComparison.OrdinalIgnoreCase));
+            bool tieneVentas = _pantallasDisponibles.Any(p => p.PuedeAbrir && string.Equals(p.Codigo, "VENTAS", StringComparison.OrdinalIgnoreCase));
 
             _btnIrUsuarios.Enabled = tieneUsuarios;
             _btnIrRoles.Enabled = tieneRoles;
@@ -614,12 +643,117 @@ ORDER BY CASE WHEN p.IdPadre IS NULL THEN 0 ELSE 1 END,
 
         private void ArbolPantallas_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e)
         {
-            if (e.Node?.Tag is not PantallaNodo pantalla)
+            if (e.Node?.Tag is not PantallaNodo pantalla || !pantalla.PuedeAbrir)
             {
                 return;
             }
 
             AbrirPantallaDesdeCodigo(pantalla.Codigo);
+        }
+
+        private int CalcularTotalSecciones(IReadOnlyCollection<PantallaNodo> pantallasAccesibles)
+        {
+            if (pantallasAccesibles.Count == 0)
+            {
+                return 0;
+            }
+
+            var mapa = _pantallasDisponibles.ToDictionary(p => p.Id);
+            var secciones = new HashSet<int>();
+
+            foreach (var pantalla in pantallasAccesibles)
+            {
+                var actual = pantalla;
+                while (actual.IdPadre.HasValue && mapa.TryGetValue(actual.IdPadre.Value, out var padre))
+                {
+                    actual = padre;
+                }
+
+                secciones.Add(actual.Id);
+            }
+
+            return secciones.Count;
+        }
+
+        private static void AgregarPantallaConAncestros(int idPantalla, bool puedeAbrir, IDictionary<int, PantallaNodo> destino, IReadOnlyDictionary<int, PantallaInfo> catalogo)
+        {
+            if (!catalogo.TryGetValue(idPantalla, out var info))
+            {
+                return;
+            }
+
+            if (!destino.TryGetValue(idPantalla, out var nodo))
+            {
+                nodo = new PantallaNodo
+                {
+                    Id = info.Id,
+                    Codigo = info.Codigo,
+                    Nombre = info.Nombre,
+                    IdPadre = info.IdPadre,
+                    Orden = info.Orden,
+                    PuedeAbrir = puedeAbrir
+                };
+                destino[idPantalla] = nodo;
+            }
+            else if (puedeAbrir && !nodo.PuedeAbrir)
+            {
+                nodo.PuedeAbrir = true;
+            }
+
+            if (info.IdPadre.HasValue)
+            {
+                AgregarPantallaConAncestros(info.IdPadre.Value, false, destino, catalogo);
+            }
+        }
+
+        private static Dictionary<int, PantallaInfo> ObtenerCatalogoPantallas(SqlConnection connection)
+        {
+            using var command = new SqlCommand("SELECT IdPantalla, Codigo, NombrePantalla, IdPadre, Orden FROM Pantalla WHERE Activo = 1", connection);
+            using var reader = command.ExecuteReader();
+            var catalogo = new Dictionary<int, PantallaInfo>();
+            while (reader.Read())
+            {
+                var info = new PantallaInfo
+                {
+                    Id = reader.GetInt32(0),
+                    Codigo = reader.GetString(1),
+                    Nombre = reader.GetString(2),
+                    IdPadre = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3),
+                    Orden = reader.IsDBNull(4) ? 0 : reader.GetInt32(4)
+                };
+                catalogo[info.Id] = info;
+            }
+
+            return catalogo;
+        }
+
+        private HashSet<int> ObtenerPantallasPermitidas(SqlConnection connection)
+        {
+            const string sql = @"
+SELECT DISTINCT p.IdPantalla
+FROM Pantalla p
+WHERE p.Activo = 1
+  AND EXISTS (
+        SELECT 1
+        FROM UsuarioPerfil up
+        JOIN PerfilPantallaAcceso pa ON pa.IdPerfil = up.IdPerfil
+        WHERE up.IdUsuario = @IdUsuario
+          AND pa.IdPantalla = p.IdPantalla
+          AND pa.PuedeVer = 1
+          AND pa.Activo = 1
+  );";
+
+            using var command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@IdUsuario", _idUsuario);
+
+            using var reader = command.ExecuteReader();
+            var permitidas = new HashSet<int>();
+            while (reader.Read())
+            {
+                permitidas.Add(reader.GetInt32(0));
+            }
+
+            return permitidas;
         }
 
         private sealed class HeroPanel : Panel
