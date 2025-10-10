@@ -22,6 +22,7 @@ namespace ERP_2_evaluacion
         private readonly Label _lblResumenAccesos = new() { AutoSize = true };
         private readonly Label _lblHeroTotalPantallas = new() { AutoSize = true };
         private readonly Label _lblHeroTotalSecciones = new() { AutoSize = true };
+        private readonly Button _btnCerrarSesion = new() { Text = "Cerrar sesión" };
         private readonly Button _btnIrUsuarios = new();
         private readonly Button _btnIrRoles = new();
         private readonly Button _btnIrAccesos = new();
@@ -89,6 +90,11 @@ namespace ERP_2_evaluacion
             _lblHeroTotalPantallas.Text = "0";
             _lblHeroTotalSecciones.Text = "0";
 
+            UiTheme.StyleSecondaryButton(_btnCerrarSesion);
+            _btnCerrarSesion.Margin = new Padding(24, 0, 0, 0);
+            _btnCerrarSesion.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            _btnCerrarSesion.Click += (_, _) => CerrarSesion();
+
             UiTheme.StyleTreeView(_arbolPantallas);
             _arbolPantallas.Margin = new Padding(0);
             _arbolPantallas.ShowNodeToolTips = true;
@@ -135,7 +141,21 @@ namespace ERP_2_evaluacion
             heroTextLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             heroTextLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             heroTextLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            heroTextLayout.Controls.Add(_lblBienvenida, 0, 0);
+            var heroHeaderLayout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 2,
+                RowCount = 1,
+                Margin = new Padding(0)
+            };
+            heroHeaderLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            heroHeaderLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            heroHeaderLayout.Controls.Add(_lblBienvenida, 0, 0);
+            heroHeaderLayout.Controls.Add(_btnCerrarSesion, 1, 0);
+
+            heroTextLayout.Controls.Add(heroHeaderLayout, 0, 0);
             heroTextLayout.Controls.Add(_lblHeroSubtitulo, 0, 1);
 
             var heroStats = new FlowLayoutPanel
@@ -423,6 +443,12 @@ namespace ERP_2_evaluacion
 
             ActualizarEstadoAcciones();
             _arbolPantallas.EndUpdate();
+        }
+
+        private void CerrarSesion()
+        {
+            DialogResult = DialogResult.Retry;
+            Close();
         }
 
         private TreeNode? CrearNodoFiltrado(PantallaNodo pantalla, Dictionary<int, List<PantallaNodo>> lookup, string? filtro)
