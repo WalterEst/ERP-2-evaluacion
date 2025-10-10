@@ -168,8 +168,24 @@ FROM Usuario WHERE NombreUsuario = @usuario OR Correo = @usuario", connection);
 
             Hide();
             using var principal = new PrincipalForm(idUsuario, nombreCompleto);
-            principal.FormClosed += (_, _) => Close();
-            principal.ShowDialog();
+            var result = principal.ShowDialog();
+
+            if (result == DialogResult.Retry)
+            {
+                _txtUsuario.Text = string.Empty;
+                _txtClave.Text = string.Empty;
+                if (_chkMostrarClave.Checked)
+                {
+                    _chkMostrarClave.Checked = false;
+                }
+                _lblMensaje.Text = string.Empty;
+                Show();
+                Activate();
+                _txtUsuario.Focus();
+                return;
+            }
+
+            Close();
         }
         catch (Exception ex)
         {
