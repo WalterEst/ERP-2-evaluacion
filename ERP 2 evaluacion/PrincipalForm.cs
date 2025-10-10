@@ -561,7 +561,7 @@ namespace ERP_2_evaluacion
                 "PRODUCTOS" => new ProductosForm(),
                 "BODEGAS" => new BodegasForm(),
                 "INVENTARIO" => new InventarioForm(_idUsuario),
-                "CLIENTES" => new ClientesForm(),
+                "CLIENTES" => new ClientesForm(_idUsuario),
                 "VENTAS" => new VentasForm(_idUsuario),
                 _ => null
             };
