@@ -8,6 +8,10 @@ namespace ERP_2_evaluacion;
 
 public class ClientesForm : Form
 {
+    private readonly int? _idUsuario;
+    private SeguridadUtil.PermisosPantalla? _permisosPantalla;
+    private bool _puedeAdministrar = true;
+
     private readonly DataGridView _grid = new()
     {
         Dock = DockStyle.Fill,
@@ -34,8 +38,10 @@ public class ClientesForm : Form
 
     private int? _idSeleccionado;
 
-    public ClientesForm()
+    public ClientesForm(int? idUsuario = null)
     {
+        _idUsuario = idUsuario;
+
         Text = "Clientes";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1200, 780);
@@ -77,16 +83,24 @@ public class ClientesForm : Form
 
         Controls.Add(split);
 
-        Load += (_, _) =>
-        {
-            CargarClientes();
-            ActualizarAccionesEstado(null);
-        };
+        Load += ClientesForm_Load;
         _grid.SelectionChanged += (_, _) => CargarSeleccion();
         _btnNuevo.Click += (_, _) => LimpiarFormulario();
         _btnGuardar.Click += (_, _) => GuardarCliente();
         _btnActivar.Click += (_, _) => CambiarEstado(true);
         _btnDesactivar.Click += (_, _) => CambiarEstado(false);
+    }
+
+    private void ClientesForm_Load(object? sender, EventArgs e)
+    {
+        if (!AplicarPermisos())
+        {
+            ActualizarAccionesEstado(null);
+            return;
+        }
+
+        CargarClientes();
+        ActualizarAccionesEstado(null);
     }
 
     private void ConfigurarGrid()
@@ -203,12 +217,19 @@ public class ClientesForm : Form
     private void ActualizarAccionesEstado(bool? activo)
     {
         var haySeleccion = _idSeleccionado != null;
-        _btnActivar.Enabled = haySeleccion && activo == false;
-        _btnDesactivar.Enabled = haySeleccion && activo != false;
+        var puedeAdministrar = _puedeAdministrar;
+        _btnActivar.Enabled = puedeAdministrar && haySeleccion && activo == false;
+        _btnDesactivar.Enabled = puedeAdministrar && haySeleccion && activo != false;
     }
 
     private void GuardarCliente()
     {
+        if (_permisosPantalla is { TieneAccesoColaboracion: false })
+        {
+            MessageBox.Show("No cuentas con permisos para crear o editar clientes.", "Acción no permitida", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
         _lblMensaje.Text = string.Empty;
 
         var nombre = _txtNombre.Text.Trim();
@@ -276,6 +297,12 @@ WHERE IdCliente = @id;", connection);
 
     private void CambiarEstado(bool activar)
     {
+        if (_permisosPantalla is { TieneAccesoAdministracion: false })
+        {
+            MessageBox.Show("No cuentas con permisos de administración para cambiar el estado de los clientes.", "Acción no permitida", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
         if (_idSeleccionado == null)
         {
             MessageBox.Show("Seleccione un cliente primero", "Atención", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -302,6 +329,118 @@ WHERE IdCliente = @id;", connection);
         catch (Exception ex)
         {
             MessageBox.Show($"Error al actualizar cliente: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private bool AplicarPermisos()
+    {
+        if (!_idUsuario.HasValue)
+        {
+            _permisosPantalla = null;
+            _puedeAdministrar = true;
+            EstablecerModoColaboracion(true);
+            _lblMensaje.ForeColor = UiTheme.DangerColor;
+            _lblMensaje.Text = string.Empty;
+            return true;
+        }
+
+        try
+        {
+            _permisosPantalla = SeguridadUtil.ObtenerPermisosPantalla(_idUsuario.Value, "CLIENTES");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"No fue posible validar tus permisos: {ex.Message}", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            _permisosPantalla = null;
+            _puedeAdministrar = true;
+            EstablecerModoColaboracion(true);
+            return true;
+        }
+
+        if (_permisosPantalla is { TieneAccesoLectura: false })
+        {
+            _puedeAdministrar = false;
+            EstablecerModoSinAcceso();
+            _lblMensaje.ForeColor = UiTheme.MutedTextColor;
+            _lblMensaje.Text = "No cuentas con permisos de lectura sobre Clientes.";
+            MessageBox.Show("No cuentas con permisos de lectura para Clientes.", "Acceso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+
+        var puedeColaborar = _permisosPantalla.TieneAccesoColaboracion;
+        _puedeAdministrar = _permisosPantalla.TieneAccesoAdministracion;
+
+        if (!puedeColaborar)
+        {
+            EstablecerModoLectura();
+            _lblMensaje.ForeColor = UiTheme.MutedTextColor;
+            _lblMensaje.Text = "Tienes acceso de lectura. Las acciones de guardado y cambio de estado están deshabilitadas.";
+        }
+        else
+        {
+            EstablecerModoColaboracion(_puedeAdministrar);
+            _lblMensaje.ForeColor = UiTheme.DangerColor;
+            _lblMensaje.Text = string.Empty;
+        }
+
+        return true;
+    }
+
+    private void EstablecerModoSinAcceso()
+    {
+        _grid.Enabled = false;
+        _grid.DataSource = null;
+        HabilitarCampos(false);
+        EstablecerSoloLecturaCampos(true);
+        _btnNuevo.Enabled = false;
+        _btnGuardar.Enabled = false;
+        _btnActivar.Enabled = false;
+        _btnDesactivar.Enabled = false;
+    }
+
+    private void EstablecerModoLectura()
+    {
+        _grid.Enabled = true;
+        HabilitarCampos(true);
+        EstablecerSoloLecturaCampos(true);
+        _btnNuevo.Enabled = false;
+        _btnGuardar.Enabled = false;
+        _btnActivar.Enabled = false;
+        _btnDesactivar.Enabled = false;
+    }
+
+    private void EstablecerModoColaboracion(bool puedeAdministrar)
+    {
+        _grid.Enabled = true;
+        HabilitarCampos(true);
+        EstablecerSoloLecturaCampos(false);
+        _btnNuevo.Enabled = true;
+        _btnGuardar.Enabled = true;
+        _btnActivar.Enabled = false;
+        _btnDesactivar.Enabled = false;
+        _puedeAdministrar = puedeAdministrar;
+    }
+
+    private void HabilitarCampos(bool habilitar)
+    {
+        foreach (var control in new Control[] { _txtNombre, _txtIdentificacion, _txtTipoDocumento, _txtCorreo, _txtTelefono, _txtDireccion })
+        {
+            control.Enabled = habilitar;
+        }
+
+        _chkActivo.Enabled = habilitar;
+    }
+
+    private void EstablecerSoloLecturaCampos(bool soloLectura)
+    {
+        foreach (var control in new[] { _txtNombre, _txtIdentificacion, _txtTipoDocumento, _txtCorreo, _txtTelefono, _txtDireccion })
+        {
+            control.ReadOnly = soloLectura;
+        }
+
+        if (_chkActivo.Enabled)
+        {
+            _chkActivo.Enabled = !soloLectura;
         }
     }
 }
